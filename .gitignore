@@ -1,0 +1,6 @@
+# Arquivos compilados
+bin/
+
+# Configurações locais do Eclipse
+.settings/
+
