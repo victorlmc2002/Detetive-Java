@@ -12,8 +12,8 @@ class Tabuleiro {
 	static final int LINHAS = 25;
 	static final int COLUNAS = 24;
 
-	// Layout aproximado do Tabuleiro-Clue-B.jpg.
-	// '#' = INACESSIVEL, '.' = CORREDOR, demais letras = COMODO_INTERIOR.
+	// Layout do Tabuleiro-Clue-B.jpg.
+	//  '.' = CORREDOR, demais letras = COMODO_INTERIOR.
 	// K=Cozinha, M=Sala de Música, J=Jardim de Inverno,
 	// D=Sala de Jantar, X=sala central CLUE (inacessível),
 	// G=Salão de Jogos, B=Biblioteca,
@@ -95,8 +95,8 @@ class Tabuleiro {
 		}
 	}
 
-	// Liga casas de corredor (portas) aos respectivos cômodos.
-	// As coordenadas escolhidas batem com setas verdes do Tabuleiro-Clue-B.
+	// Liga casas de portas aos respectivos cômodos
+	// As coordenadas escolhidas batem com setas verdes do Tabuleiro
 	private void registrarPortas() {
 		ligarPorta("Cozinha", 6, 4);
 		ligarPorta("Sala de Música", 6, 10);
@@ -121,7 +121,7 @@ class Tabuleiro {
 	}
 
 	private void registrarCasasIniciais() {
-		// Posições marcadas no Tabuleiro-Clue-B (peões coloridos na borda).
+		// Posições marcadas no Tabuleiro
 		casasIniciais.put("Srta. Scarlet", grade[24][7]);
 		casasIniciais.put("Coronel Mustard", grade[17][0]);
 		casasIniciais.put("Sra. White", grade[0][9]);
@@ -150,8 +150,8 @@ class Tabuleiro {
 	}
 
 	// BFS: retorna todas as casas (corredor) e cômodos alcançáveis
-	// com até `passos` movimentos a partir de `origem`,
-	// ignorando casas ocupadas em `bloqueadas`.
+	// com até n passos de movimentos a partir de 'origem',
+	// ignorando casas ocupadas em 'bloqueadas'.
 	// O peão da vez (origem) não é considerado bloqueio.
 	Set<Casa> mapearCasas(Casa origem, int passos, Set<Casa> bloqueadas) {
 		Set<Casa> alcancaveis = new HashSet<>();
@@ -216,7 +216,7 @@ class Tabuleiro {
 	}
 
 	// Verifica se um destino (casa de corredor ou casa interior de cômodo)
-	// está entre os alcançáveis a partir de `origem` em `passos` passos.
+	// está entre os alcançáveis a partir de 'origem' em 'passos' passos.
 	boolean ehAlcancavel(Casa origem, Casa destino, int passos, Set<Casa> bloqueadas) {
 		Set<Casa> alvos = mapearCasas(origem, passos, bloqueadas);
 		return alvos.contains(destino);
