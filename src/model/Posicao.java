@@ -6,7 +6,7 @@ public final class Posicao {
 	private final int linha;
 	private final int coluna;
 
-	Posicao(int linha, int coluna) {
+	public Posicao(int linha, int coluna) {
 		this.linha = linha;
 		this.coluna = coluna;
 	}
