@@ -26,6 +26,7 @@ public class Jogo {
 	private Envelope envelope;
 	private int indiceVez;
 	private boolean partidaIniciada = false;
+	private int ultimoLancamento = 0;
 
 	public Jogo() {
 		this.tabuleiro = new Tabuleiro();
@@ -89,7 +90,32 @@ public class Jogo {
 	}
 
 	public int lancarDado() {
-		return dado.lancar();
+		ultimoLancamento = dado.lancar();
+		return ultimoLancamento;
+	}
+
+	public int passosRestantes() {
+		return ultimoLancamento;
+	}
+
+	public Posicao posicaoDoPiao(String suspeito) {
+		verificarPartidaIniciada();
+		for (Jogador j : jogadores) {
+			if (j.getPeao().getSuspeito().equals(suspeito)) {
+				Casa c = j.getPeao().getCasa();
+				return new Posicao(c.getLinha(), c.getColuna());
+			}
+		}
+		throw new IllegalArgumentException("Suspeito não está em jogo: " + suspeito);
+	}
+
+	public List<String> suspeitosEmJogo() {
+		verificarPartidaIniciada();
+		List<String> nomes = new ArrayList<>();
+		for (Jogador j : jogadores) {
+			nomes.add(j.getPeao().getSuspeito());
+		}
+		return nomes;
 	}
 
 	// Item 3: mapeia todas as casas alcançáveis pelo peão da vez,

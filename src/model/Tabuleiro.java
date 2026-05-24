@@ -61,22 +61,37 @@ class Tabuleiro {
 	private final Casa[][] grade = new Casa[LINHAS][COLUNAS];
 	private final Map<String, Comodo> comodosPorNome = new HashMap<>();
 	private final Map<String, Casa> casasIniciais = new HashMap<>();
+	private final Map<Comodo, Comodo> passagensSecretas = new HashMap<>();
 
 	Tabuleiro() {
 		construirGrade();
 		registrarPortas();
+		registrarPassagensSecretas();
 		registrarCasasIniciais();
 	}
 
+	// Regras do Clue: Cozinha <-> Escritório, Sala de Estar <-> Jardim de Inverno.
+	private void registrarPassagensSecretas() {
+		ligarPassagem("Cozinha", "Escritório");
+		ligarPassagem("Sala de Estar", "Jardim de Inverno");
+	}
+
+	private void ligarPassagem(String comodoA, String comodoB) {
+		Comodo a = comodosPorNome.get(comodoA);
+		Comodo b = comodosPorNome.get(comodoB);
+		passagensSecretas.put(a, b);
+		passagensSecretas.put(b, a);
+	}
+
 	private void construirGrade() {
-		// fix: padronizar todas as linhas em COLUNAS chars
+		// fix: padronizar todas as linhas em COLUNAS chars 
 		for (int l = 0; l < LINHAS; l++) {
 			String linha = LAYOUT[l];
-//			if (linha.length() < COLUNAS) {
-//				StringBuilder sb = new StringBuilder(linha);
-//				while (sb.length() < COLUNAS) sb.append('.');
-//				linha = sb.toString();
-//			}
+			if (linha.length() < COLUNAS) {
+				StringBuilder sb = new StringBuilder(linha);
+				while (sb.length() < COLUNAS) sb.append('.');
+				linha = sb.toString();
+			}
 			for (int c = 0; c < COLUNAS; c++) {
 				char ch = linha.charAt(c);
 				Casa casa;
@@ -96,7 +111,6 @@ class Tabuleiro {
 	}
 
 	// Liga casas de portas aos respectivos cômodos
-	// As coordenadas escolhidas batem com setas verdes do Tabuleiro
 	private void registrarPortas() {
 		ligarPorta("Cozinha", 6, 4);
 		ligarPorta("Sala de Música", 6, 10);
@@ -161,6 +175,8 @@ class Tabuleiro {
 		Queue<Casa> fila = new LinkedList<>();
 
 		// Se peão começa dentro de um cômodo, suas saídas são as portas do cômodo.
+		// Se houver passagem secreta, as portas do cômodo ligado também viram
+		// pontos de origem (distância 0), permitindo a "teletransporte" via passagem.
 		if (origem.ehInterior()) {
 			Comodo comodo = origem.getComodo();
 			for (Casa porta : comodo.getPortas()) {
@@ -168,6 +184,20 @@ class Tabuleiro {
 					distancia.put(porta, 0);
 					fila.add(porta);
 					alcancaveis.add(porta);
+				}
+			}
+			Comodo ligado = passagensSecretas.get(comodo);
+			if (ligado != null) {
+				// Interior do cômodo ligado também é alcançável (entrar pela passagem).
+				for (Casa interior : ligado.getInterior()) {
+					alcancaveis.add(interior);
+				}
+				for (Casa porta : ligado.getPortas()) {
+					if (!bloqueadas.contains(porta) && !distancia.containsKey(porta)) {
+						distancia.put(porta, 0);
+						fila.add(porta);
+						alcancaveis.add(porta);
+					}
 				}
 			}
 		} else {
