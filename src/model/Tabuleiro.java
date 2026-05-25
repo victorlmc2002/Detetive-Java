@@ -19,31 +19,31 @@ class Tabuleiro {
 	// G=Salão de Jogos, B=Biblioteca,
 	// L=Sala de Estar, E=Entrada, O=Escritório
 	private static final String[] LAYOUT = {
-		"KKKKKK....MMMMMMM..JJJJJ",
-		"KKKKKK....MMMMMMM..JJJJJ",
-		"KKKKKK....MMMMMMM..JJJJJ",
-		"KKKKKK....MMMMMMM..JJJJJ",
-		"KKKKKK....MMMMMMM..JJJJJ",
-		"KKKKKK....MMMMMMM.......",
-		"........................",
-		"........................",
-		"DDDDDDDD..XXXXX..GGGGGGG",
-		"DDDDDDDD..XXXXX..GGGGGGG",
-		"DDDDDDDD..XXXXX..GGGGGGG",
-		"DDDDDDDD..XXXXX..GGGGGGG",
-		"DDDDDDDD..XXXXX..GGGGGGG",
-		"........................",
-		"........................",
-		"..................BBBBBB",
-		"..................BBBBBB",
-		"..................BBBBBB",
-		"LLLLLL..EEEEEEE...BBBBBB",
-		"LLLLLL..EEEEEEE.........",
-		"LLLLLL..EEEEEEE..OOOOOOO",
-		"LLLLLL..EEEEEEE..OOOOOOO",
-		"LLLLLL..EEEEEEE..OOOOOOO",
-		"LLLLLL..EEEEEEE..OOOOOOO",
-		"........EEEEEEE..OOOOOOO"
+	"KKKKKKXXX.XXXX.XXXXXXXXX",
+		"KKKKKKX...MMMM...XJJJJJJ",
+		"KKKKKK..MMMMMMMM..JJJJJJ",
+		"KKKKKK..MMMMMMMM..JJJJJJ",
+		"KKKKKK..MMMMMMMM..JJJJJJ",
+		"KKKKKK..MMMMMMMM...JJJJX",
+		"XKKKKK..MMMMMMMM........",
+		"........MMMMMMMM.......X",
+		"X.................GGGGGG",
+		"DDDDD.............GGGGGG",
+		"DDDDDDDD..XXXXX...GGGGGG",
+		"DDDDDDDD..XXXXX...GGGGGG",
+		"DDDDDDDD..XXXXX...GGGGGG",
+		"DDDDDDDD..XXXXX........X",
+		"DDDDDDDD..XXXXX...BBBBBX",
+		"DDDDDDDD..XXXXX..BBBBBBB",
+		"X.........XXXXX..BBBBBBB",
+		".................BBBBBBB",
+		"X........EEEEEE...BBBBBX",
+		"LLLLLLL..EEEEEE.........",
+		"LLLLLLL..EEEEEE........X",
+		"LLLLLLL..EEEEEE..OOOOOOO",
+		"LLLLLLL..EEEEEE..OOOOOOO",
+		"LLLLLLL..EEEEEE..OOOOOOO",
+		"LLLLLLX.XXEEEEXX.XOOOOOO"
 	};
 
 	private static final Map<Character, String> NOMES_COMODOS = Map.of(
@@ -112,20 +112,23 @@ class Tabuleiro {
 
 	// Liga casas de portas aos respectivos cômodos
 	private void registrarPortas() {
-		ligarPorta("Cozinha", 6, 4);
-		ligarPorta("Sala de Música", 6, 10);
-		ligarPorta("Sala de Música", 6, 15);
-		ligarPorta("Jardim de Inverno", 4, 18);
-		ligarPorta("Sala de Jantar", 8, 8);
+		ligarPorta("Cozinha", 7, 4);
+		ligarPorta("Sala de Música", 5, 7);
+		ligarPorta("Sala de Música", 5, 16);
+		ligarPorta("Sala de Música", 8, 9);
+		ligarPorta("Sala de Música", 8, 14);
+		ligarPorta("Jardim de Inverno", 5, 18);
 		ligarPorta("Sala de Jantar", 12, 8);
-		ligarPorta("Salão de Jogos", 8, 16);
-		ligarPorta("Salão de Jogos", 12, 16);
-		ligarPorta("Biblioteca", 14, 18);
-		ligarPorta("Biblioteca", 17, 17);
+		ligarPorta("Sala de Jantar", 16, 6);
+		ligarPorta("Salão de Jogos", 9, 17);
+		ligarPorta("Salão de Jogos", 13, 22);
+		ligarPorta("Biblioteca", 13, 20);
+		ligarPorta("Biblioteca", 16, 16);
 		ligarPorta("Sala de Estar", 18, 6);
-		ligarPorta("Entrada", 17, 9);
-		ligarPorta("Entrada", 17, 13);
-		ligarPorta("Escritório", 19, 18);
+		ligarPorta("Entrada", 17, 11);
+		ligarPorta("Entrada", 17, 12);
+		ligarPorta("Entrada", 20, 15);
+		ligarPorta("Escritório", 20, 17);
 	}
 
 	private void ligarPorta(String nomeComodo, int linha, int coluna) {

@@ -46,7 +46,7 @@ public class Recursos {
 	public static void carregar() {
 		if (carregado) return;
 		try {
-			imagens.put("tabuleiro", lerImagem(BASE + "Tabuleiros/Tabuleiro-Clue-B.jpg"));
+			imagens.put("tabuleiro", lerImagem(BASE + "Tabuleiros/Tabuleiro-Clue-a.jpg"));
 			for (int i = 1; i <= 6; i++) {
 				imagens.put("dado" + i, lerImagem(BASE + "Tabuleiros/dado" + i + ".jpg"));
 			}

@@ -109,6 +109,32 @@ public class Jogo {
 		throw new IllegalArgumentException("Suspeito não está em jogo: " + suspeito);
 	}
 
+	// Para debug/View: identifica o tipo de uma casa por um caractere curto.
+	//   '.' = corredor   'P' = porta   'X' = inacessivel/fora
+	//   inicial do comodo (K,M,J,D,G,B,L,E,O) = interior de comodo
+	public char tipoCasa(int linha, int coluna) {
+		Casa c = tabuleiro.getCasa(linha, coluna);
+		if (c == null || c.getTipo() == TipoCasa.INACESSIVEL) return 'X';
+		if (c.ehInterior()) {
+			String nome = c.getComodo().getNome();
+			if (nome.equals("Cozinha"))            return 'K';
+			if (nome.equals("Sala de Música"))     return 'M';
+			if (nome.equals("Jardim de Inverno"))  return 'J';
+			if (nome.equals("Sala de Jantar"))     return 'D';
+			if (nome.equals("Salão de Jogos"))     return 'G';
+			if (nome.equals("Biblioteca"))         return 'B';
+			if (nome.equals("Sala de Estar"))      return 'L';
+			if (nome.equals("Entrada"))            return 'E';
+			if (nome.equals("Escritório"))         return 'O';
+			return '?';
+		}
+		// Corredor: verifica se é porta de algum cômodo.
+		for (Comodo cm : tabuleiro.getComodos().values()) {
+			if (cm.getPortas().contains(c)) return 'P';
+		}
+		return '.';
+	}
+
 	public List<String> suspeitosEmJogo() {
 		verificarPartidaIniciada();
 		List<String> nomes = new ArrayList<>();

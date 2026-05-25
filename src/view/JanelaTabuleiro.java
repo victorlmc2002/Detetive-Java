@@ -51,6 +51,18 @@ public class JanelaTabuleiro extends JFrame {
 	private static final int LINHAS  = 25;
 	private static final int COLUNAS = 24;
 
+	// Calibracao: fracao da imagem ocupada pelas margens (borda
+	// cinza, rotulos dos comodos, abas de partida dos peoes). A grade jogavel
+	// 25x24 fica dentro do retangulo (FRAC_LEFT, FRAC_TOP) -> (1-FRAC_RIGHT, 1-FRAC_BOTTOM)
+	private static final double FRAC_LEFT   = 0.070;
+	private static final double FRAC_TOP    = 0.070;
+	private static final double FRAC_RIGHT  = 0.070;
+	private static final double FRAC_BOTTOM = 0.070;
+
+	// Ligue para true para desenhar a grade 25x24 sobre a imagem
+	// Use para calibrar os FRAC_* acima ate que os retangulos coincidam
+	private static final boolean DEBUG_GRADE = true;
+
 	// =========================================================================
 	// Maquina de estados do turno
 	// =========================================================================
@@ -355,6 +367,8 @@ public class JanelaTabuleiro extends JFrame {
 
 		// Posicao e tamanho reais da imagem dentro do painel (atualizados no repaint)
 		private int imgX, imgY, imgW, imgH;
+		// Sub-retangulo da imagem que contem a grade jogavel 25x24 (sem margens decorativas).
+		private int gridX, gridY, gridW, gridH;
 
 		PainelTabuleiro() {
 			setBackground(new Color(15, 10, 10));
@@ -367,11 +381,11 @@ public class JanelaTabuleiro extends JFrame {
 			addMouseListener(new MouseAdapter() {
 				@Override
 				public void mouseClicked(MouseEvent e) {
-					if (imgW == 0) return; // ainda nao foi pintado
-					double cw = imgW / (double) COLUNAS;
-					double ch = imgH / (double) LINHAS;
-					int col = (int) ((e.getX() - imgX) / cw);
-					int lin = (int) ((e.getY() - imgY) / ch);
+					if (gridW == 0) return; // ainda nao foi pintado
+					double cw = gridW / (double) COLUNAS;
+					double ch = gridH / (double) LINHAS;
+					int col = (int) ((e.getX() - gridX) / cw);
+					int lin = (int) ((e.getY() - gridY) / ch);
 					// Ignora clique fora da grade
 					if (lin >= 0 && lin < LINHAS && col >= 0 && col < COLUNAS) {
 						tentarMover(lin, col);
@@ -390,6 +404,7 @@ public class JanelaTabuleiro extends JFrame {
 
 				// Ordem de desenho: tabuleiro -> destaques -> peoes -> indicador de vez
 				desenharTabuleiro(g2);
+				if (DEBUG_GRADE) desenharGradeDebug(g2);
 				desenharDestaques(g2);
 				desenharPeoes(g2);
 				desenharIndicadorVez(g2);
@@ -416,6 +431,56 @@ public class JanelaTabuleiro extends JFrame {
 			imgY = (ph - imgH) / 2;
 
 			g2.drawImage(img, imgX, imgY, imgW, imgH, null);
+
+			// Recalcula o sub-retangulo da grade jogavel dentro da imagem.
+			gridX = imgX + (int) (imgW * FRAC_LEFT);
+			gridY = imgY + (int) (imgH * FRAC_TOP);
+			gridW = imgW - (int) (imgW * (FRAC_LEFT + FRAC_RIGHT));
+			gridH = imgH - (int) (imgH * (FRAC_TOP + FRAC_BOTTOM));
+		}
+
+		// -----------------------------------------------------------------
+		// 1.5) DEBUG: desenha a grade 25x24 em vermelho para calibrar os FRAC_*
+		// -----------------------------------------------------------------
+		private void desenharGradeDebug(Graphics2D g2) {
+			double cw = gridW / (double) COLUNAS;
+			double ch = gridH / (double) LINHAS;
+			g2.setColor(new Color(255, 0, 0, 180));
+			g2.setStroke(new BasicStroke(1f));
+			// Linhas verticais
+			for (int c = 0; c <= COLUNAS; c++) {
+				int x = gridX + (int) (c * cw);
+				g2.drawLine(x, gridY, x, gridY + gridH);
+			}
+			// Linhas horizontais
+			for (int l = 0; l <= LINHAS; l++) {
+				int y = gridY + (int) (l * ch);
+				g2.drawLine(gridX, y, gridX + gridW, y);
+			}
+			// Borda externa mais grossa
+			g2.setStroke(new BasicStroke(2f));
+			g2.drawRect(gridX, gridY, gridW, gridH);
+
+			// Letra com o tipo de cada casa, centralizada na celula.
+			int tam = Math.max(8, (int) (Math.min(cw, ch) * 0.55));
+			g2.setFont(new Font("SansSerif", Font.BOLD, tam));
+			java.awt.FontMetrics fm = g2.getFontMetrics();
+			int ascent = fm.getAscent();
+			for (int l = 0; l < LINHAS; l++) {
+				for (int c = 0; c < COLUNAS; c++) {
+					char tipo = jogo.tipoCasa(l, c);
+					String s = String.valueOf(tipo);
+					int tw = fm.stringWidth(s);
+					int cx = gridX + (int) ((c + 0.5) * cw);
+					int cy = gridY + (int) ((l + 0.5) * ch);
+					// Fundo branco semi-transparente para contraste.
+					g2.setColor(new Color(255, 255, 255, 160));
+					g2.fillRect(cx - tw / 2 - 1, cy - ascent / 2, tw + 2, ascent);
+					// Letra vermelha por cima.
+					g2.setColor(new Color(180, 0, 0));
+					g2.drawString(s, cx - tw / 2, cy + ascent / 2 - 2);
+				}
+			}
 		}
 
 		// -----------------------------------------------------------------
@@ -423,22 +488,22 @@ public class JanelaTabuleiro extends JFrame {
 		// -----------------------------------------------------------------
 		private void desenharDestaques(Graphics2D g2) {
 			if (alcancaveis == null || alcancaveis.isEmpty()) return;
-			double cw = imgW / (double) COLUNAS;
-			double ch = imgH / (double) LINHAS;
+			double cw = gridW / (double) COLUNAS;
+			double ch = gridH / (double) LINHAS;
 
 			// Preenchimento suave
 			g2.setColor(new Color(255, 230, 0, 65));
 			for (Posicao p : alcancaveis) {
-				int px = imgX + (int) (p.getColuna() * cw);
-				int py = imgY + (int) (p.getLinha()  * ch);
+				int px = gridX + (int) (p.getColuna() * cw);
+				int py = gridY + (int) (p.getLinha()  * ch);
 				g2.fillRect(px, py, (int) cw + 1, (int) ch + 1);
 			}
 			// Borda para destacar a grade
 			g2.setColor(new Color(255, 200, 0, 170));
 			g2.setStroke(new BasicStroke(1f));
 			for (Posicao p : alcancaveis) {
-				int px = imgX + (int) (p.getColuna() * cw);
-				int py = imgY + (int) (p.getLinha()  * ch);
+				int px = gridX + (int) (p.getColuna() * cw);
+				int py = gridY + (int) (p.getLinha()  * ch);
 				g2.drawRect(px, py, (int) cw, (int) ch);
 			}
 		}
@@ -447,8 +512,8 @@ public class JanelaTabuleiro extends JFrame {
 		// 3) Peoes: circulo colorido com sombra + anel no jogador ativo
 		// -----------------------------------------------------------------
 		private void desenharPeoes(Graphics2D g2) {
-			double cw = imgW / (double) COLUNAS;
-			double ch = imgH / (double) LINHAS;
+			double cw = gridW / (double) COLUNAS;
+			double ch = gridH / (double) LINHAS;
 			String ativo = jogo.suspeitoDaVez();
 
 			List<String> suspeitos = jogo.suspeitosEmJogo();
@@ -457,8 +522,8 @@ public class JanelaTabuleiro extends JFrame {
 				Color cor = Recursos.cor(s);
 
 				// Centro do circulo no meio da celula
-				double cx = imgX + (pos.getColuna() + 0.5) * cw;
-				double cy = imgY + (pos.getLinha()  + 0.5) * ch;
+				double cx = gridX + (pos.getColuna() + 0.5) * cw;
+				double cy = gridY + (pos.getLinha()  + 0.5) * ch;
 				int r = (int) (Math.min(cw, ch) * 0.36); // raio = 36% da celula
 
 				// Sombra deslocada 2px
