@@ -25,7 +25,7 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 
-import model.Jogo;
+import controller.Controller;
 
 // Segunda janela: o usuário escolhe quais suspeitos participam clicando nas cartas.
 // Scarlet sempre joga, demais são opcionais. Mínimo de 3 jogadores no total.
@@ -118,9 +118,10 @@ public class JanelaPersonagens extends JFrame {
 				nomes.add(c.getSuspeito());
 			}
 		}
-		Jogo jogo = new Jogo();
-		jogo.iniciarPartida(nomes);
-		JanelaTabuleiro proxima = new JanelaTabuleiro(jogo);
+		// O Controller (Singleton) inicia a partida na Fachada; a janela do
+		// tabuleiro apenas observa o estado resultante.
+		Controller.getInstance().iniciarPartida(nomes);
+		JanelaTabuleiro proxima = new JanelaTabuleiro();
 		proxima.setVisible(true);
 		dispose();
 	}

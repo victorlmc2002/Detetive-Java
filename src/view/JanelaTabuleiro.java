@@ -14,9 +14,10 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
 import java.util.List;
-import java.util.Random;
 import java.util.Set;
 
 import javax.swing.BorderFactory;
@@ -28,22 +29,27 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 
-import model.Jogo;
+import controller.Controller;
+import model.Fachada;
+import model.IObservador;
 import model.Posicao;
 
 /**
  * Janela principal do jogo.
  *
+ * Esta classe é um OBSERVADOR (padrão Observer, Cap. 17): registra-se na
+ * Fachada e, a cada notificação de mudança de estado da partida, relê o estado
+ * e se redesenha. Ela NÃO contém mais lógica de turno — todos os comandos do
+ * usuário são encaminhados ao Controller, que organiza a sequência de eventos.
+ *
  * Layout BorderLayout:
  *   CENTER -> PainelTabuleiro  (tabuleiro + peoes, 100% Java2D)
  *   EAST   -> painel de controles (Swing: botoes, label, combos, dados)
  *
- * Maquina de estados do turno (campo 'estado'):
- *   AGUARDANDO_DADO  ->  AGUARDANDO_MOVIMENTO  ->  FIM_TURNO
- *                            ^ (clique invalido: fica aqui)
- *   FIM_TURNO  ->  AGUARDANDO_DADO  (ao clicar "Proximo Jogador")
+ * A máquina de estados do turno vive no Controller; a View apenas consulta
+ * controller.getEstado() para habilitar botões e decidir o que desenhar.
  */
-public class JanelaTabuleiro extends JFrame {
+public class JanelaTabuleiro extends JFrame implements IObservador {
 
 	private static final long serialVersionUID = 1L;
 
@@ -59,29 +65,17 @@ public class JanelaTabuleiro extends JFrame {
 	private static final double FRAC_RIGHT  = 0.070;
 	private static final double FRAC_BOTTOM = 0.070;
 
-	// Ligue para true para desenhar a grade 25x24 sobre a imagem
-	// Use para calibrar os FRAC_* acima ate que os retangulos coincidam
-	private static final boolean DEBUG_GRADE = true;
+	// Ligue para true para desenhar a grade 25x24 sobre a imagem (calibracao).
+	private static final boolean DEBUG_GRADE = false;
 
 	// =========================================================================
-	// Maquina de estados do turno
+	// Colaboradores (padroes): unico ponto de contato com o Model/Controller
 	// =========================================================================
-	private enum EstadoTurno {
-		AGUARDANDO_DADO,       // Jogador ainda nao lancou os dados
-		AGUARDANDO_MOVIMENTO,  // Dados lancados; aguarda clique no destino
-		FIM_TURNO              // Peao movido; aguarda "Proximo Jogador"
-	}
+	private final Fachada    fachada    = Fachada.getInstance();
+	private final Controller controller = Controller.getInstance();
 
-	// =========================================================================
-	// Estado interno
-	// =========================================================================
-	private final Jogo   jogo;
-	private final Random rng = new Random();
-
-	private EstadoTurno  estado     = EstadoTurno.AGUARDANDO_DADO;
-	private Set<Posicao> alcancaveis;   // casas que o jogador pode alcancar
-	private int          valorD1 = 0;  // valor do dado 1 (para exibir imagem)
-	private int          valorD2 = 0;  // valor do dado 2
+	// Casas destacadas durante a escolha do destino (estado AGUARDANDO_MOVIMENTO).
+	private Set<Posicao> alcancaveis;
 
 	// =========================================================================
 	// Componentes Swing do painel lateral
@@ -98,9 +92,8 @@ public class JanelaTabuleiro extends JFrame {
 	// =========================================================================
 	// Construtor
 	// =========================================================================
-	public JanelaTabuleiro(Jogo jogo) {
+	public JanelaTabuleiro() {
 		super("Clue - Jogo");
-		this.jogo = jogo;
 
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setResizable(false);
@@ -115,6 +108,26 @@ public class JanelaTabuleiro extends JFrame {
 
 		setSize(1400, 1050);
 		setLocationRelativeTo(null);
+
+		// Observer: passa a refletir mudancas de estado da partida.
+		fachada.adicionarObservador(this);
+		addWindowListener(new WindowAdapter() {
+			@Override
+			public void windowClosing(WindowEvent e) {
+				fachada.removerObservador(JanelaTabuleiro.this);
+			}
+		});
+
+		atualizarInterface();
+	}
+
+	// =========================================================================
+	// Observer: chamado pela Fachada a cada mudanca de estado da partida.
+	// =========================================================================
+	@Override
+	public void notificar(Object evento) {
+		// Estamos sempre na EDT (a Fachada e acionada por handlers Swing),
+		// entao basta reler o estado e redesenhar.
 		atualizarInterface();
 	}
 
@@ -139,13 +152,13 @@ public class JanelaTabuleiro extends JFrame {
 		painelDados.setOpaque(false);
 		painelDados.setMaximumSize(new Dimension(200, 95));
 
-		// --- Botao: lancar dados aleatoriamente ---
+		// --- Botao: lancar dados aleatoriamente (delega ao Controller) ---
 		botaoDado = new JButton("Lancar Dados");
 		estilizarBotao(botaoDado);
 		botaoDado.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				lancarAleatoriamente();
+				controller.lancarDados();
 			}
 		});
 
@@ -178,13 +191,15 @@ public class JanelaTabuleiro extends JFrame {
 		painelCombos.add(comboD2);
 		painelCombos.setMaximumSize(new Dimension(200, 36));
 
-		// Botao que usa os valores dos combos em vez de rolar aleatoriamente
+		// Botao que usa os valores dos combos (modo testador) em vez de randomizar.
 		botaoDefinir = new JButton("Usar Combos");
 		estilizarBotao(botaoDefinir);
 		botaoDefinir.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				lancarComCombos();
+				int d1 = (Integer) comboD1.getSelectedItem();
+				int d2 = (Integer) comboD2.getSelectedItem();
+				controller.definirDados(d1, d2);
 			}
 		});
 
@@ -194,7 +209,7 @@ public class JanelaTabuleiro extends JFrame {
 		botaoProximo.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				avancarTurno();
+				controller.avancarTurno();
 			}
 		});
 
@@ -228,92 +243,44 @@ public class JanelaTabuleiro extends JFrame {
 	}
 
 	// =========================================================================
-	// Logica de turno
+	// Sincronizacao da interface com o estado atual (lido da Fachada/Controller)
 	// =========================================================================
-
-	/** Lanca os dados de forma aleatoria. */
-	private void lancarAleatoriamente() {
-		if (estado != EstadoTurno.AGUARDANDO_DADO) return;
-		valorD1 = rng.nextInt(6) + 1;
-		valorD2 = rng.nextInt(6) + 1;
-		processarLancamento();
-	}
-
-	/** Usa os valores dos JComboBox (modo teste). */
-	private void lancarComCombos() {
-		if (estado != EstadoTurno.AGUARDANDO_DADO) return;
-		valorD1 = (Integer) comboD1.getSelectedItem();
-		valorD2 = (Integer) comboD2.getSelectedItem();
-		processarLancamento();
-	}
-
 	/**
-	 * Logica comum apos definir valorD1 e valorD2:
-	 * calcula as casas alcancaveis e passa para AGUARDANDO_MOVIMENTO.
-	 */
-	private void processarLancamento() {
-		int total = valorD1 + valorD2;
-		alcancaveis = jogo.casasAlcancaveis(total);
-		estado = EstadoTurno.AGUARDANDO_MOVIMENTO;
-		atualizarInterface();
-		painelTabuleiro.repaint();
-	}
-
-	/**
-	 * Chamado quando o jogador clica em uma celula do tabuleiro.
-	 * Se o destino for alcancavel: move o peao e vai para FIM_TURNO.
-	 * Se nao for: nada acontece (sem mensagem, sem troca de vez - conforme regra).
-	 */
-	private void tentarMover(int linha, int coluna) {
-		if (estado != EstadoTurno.AGUARDANDO_MOVIMENTO) return;
-		Posicao destino = new Posicao(linha, coluna);
-		if (alcancaveis != null && alcancaveis.contains(destino)) {
-			jogo.deslocarPiao(destino);
-			alcancaveis = null;
-			estado = EstadoTurno.FIM_TURNO;
-			atualizarInterface();
-			painelTabuleiro.repaint();
-		}
-		// Destino invalido: silencio total (conforme regra)
-	}
-
-	/** Passa a vez para o proximo jogador e reinicia o ciclo do turno. */
-	private void avancarTurno() {
-		if (estado != EstadoTurno.FIM_TURNO) return;
-		jogo.proximoJogador();
-		alcancaveis = null;
-		valorD1 = 0;
-		valorD2 = 0;
-		estado = EstadoTurno.AGUARDANDO_DADO;
-		atualizarInterface();
-		painelTabuleiro.repaint();
-	}
-
-	/**
-	 * Sincroniza todos os componentes Swing com o estado atual do jogo.
-	 * Deve ser chamado sempre que o estado do turno mudar.
+	 * Relê o estado da partida (Fachada) e do turno (Controller) e atualiza
+	 * todos os componentes. Chamado no construtor e a cada notificacao Observer.
 	 */
 	private void atualizarInterface() {
-		String suspeito = jogo.suspeitoDaVez();
+		Controller.EstadoTurno estado = controller.getEstado();
+
+		String suspeito = fachada.suspeitoDaVez();
 		Color cor = Recursos.cor(suspeito);
 
 		// Texto e cor do label do jogador da vez
 		labelJogador.setText("<html><center>Vez de:<br><b>" + suspeito + "</b></center></html>");
 		if (cor != null) labelJogador.setForeground(cor);
 
-		// Atualiza as imagens dos dados (aparecem so depois de lancar)
+		// Dados: aparecem apos o lancamento (qualquer estado != AGUARDANDO_DADO).
 		painelDados.removeAll();
-		if (valorD1 > 0) {
-			painelDados.add(new PainelDado(Recursos.dado(valorD1)));
-			painelDados.add(new PainelDado(Recursos.dado(valorD2)));
+		if (estado != Controller.EstadoTurno.AGUARDANDO_DADO) {
+			painelDados.add(new PainelDado(Recursos.dado(fachada.getDado1())));
+			painelDados.add(new PainelDado(Recursos.dado(fachada.getDado2())));
 		}
 		painelDados.revalidate();
 		painelDados.repaint();
 
-		// Habilita/desabilita botoes de acordo com o estado do turno
-		botaoDado.setEnabled(estado == EstadoTurno.AGUARDANDO_DADO);
-		botaoDefinir.setEnabled(estado == EstadoTurno.AGUARDANDO_DADO);
-		botaoProximo.setEnabled(estado == EstadoTurno.FIM_TURNO);
+		// Destaques: apenas durante a escolha do destino.
+		if (estado == Controller.EstadoTurno.AGUARDANDO_MOVIMENTO) {
+			alcancaveis = fachada.casasAlcancaveis(fachada.getTotalDados());
+		} else {
+			alcancaveis = null;
+		}
+
+		// Habilita/desabilita botoes de acordo com o estado do turno.
+		botaoDado.setEnabled(estado == Controller.EstadoTurno.AGUARDANDO_DADO);
+		botaoDefinir.setEnabled(estado == Controller.EstadoTurno.AGUARDANDO_DADO);
+		botaoProximo.setEnabled(estado == Controller.EstadoTurno.FIM_TURNO);
+
+		painelTabuleiro.repaint();
 	}
 
 	// =========================================================================
@@ -374,7 +341,7 @@ public class JanelaTabuleiro extends JFrame {
 			setBackground(new Color(15, 10, 10));
 
 			/*
-			 * MouseListener detecta o clique do jogador.
+			 * MouseListener detecta o clique do jogador e o encaminha ao Controller.
 			 * Converte pixel -> celula usando a proporcao do ultimo paintComponent.
 			 * Usa classe anonima de MouseAdapter (nao usa lambda - proibido pelo enunciado).
 			 */
@@ -388,7 +355,7 @@ public class JanelaTabuleiro extends JFrame {
 					int lin = (int) ((e.getY() - gridY) / ch);
 					// Ignora clique fora da grade
 					if (lin >= 0 && lin < LINHAS && col >= 0 && col < COLUNAS) {
-						tentarMover(lin, col);
+						controller.tentarMover(lin, col);
 					}
 				}
 			});
@@ -468,7 +435,7 @@ public class JanelaTabuleiro extends JFrame {
 			int ascent = fm.getAscent();
 			for (int l = 0; l < LINHAS; l++) {
 				for (int c = 0; c < COLUNAS; c++) {
-					char tipo = jogo.tipoCasa(l, c);
+					char tipo = fachada.tipoCasa(l, c);
 					String s = String.valueOf(tipo);
 					int tw = fm.stringWidth(s);
 					int cx = gridX + (int) ((c + 0.5) * cw);
@@ -514,11 +481,11 @@ public class JanelaTabuleiro extends JFrame {
 		private void desenharPeoes(Graphics2D g2) {
 			double cw = gridW / (double) COLUNAS;
 			double ch = gridH / (double) LINHAS;
-			String ativo = jogo.suspeitoDaVez();
+			String ativo = fachada.suspeitoDaVez();
 
-			List<String> suspeitos = jogo.suspeitosEmJogo();
+			List<String> suspeitos = fachada.suspeitosEmJogo();
 			for (String s : suspeitos) {
-				Posicao pos = jogo.posicaoDoPiao(s);
+				Posicao pos = fachada.posicaoDoPiao(s);
 				Color cor = Recursos.cor(s);
 
 				// Centro do circulo no meio da celula
@@ -553,7 +520,7 @@ public class JanelaTabuleiro extends JFrame {
 		// 4) Indicador de vez: faixa colorida fina no topo do tabuleiro
 		// -----------------------------------------------------------------
 		private void desenharIndicadorVez(Graphics2D g2) {
-			Color cor = Recursos.cor(jogo.suspeitoDaVez());
+			Color cor = Recursos.cor(fachada.suspeitoDaVez());
 			if (cor == null) return;
 			g2.setColor(new Color(cor.getRed(), cor.getGreen(), cor.getBlue(), 210));
 			g2.fillRoundRect(imgX, imgY, imgW, 7, 4, 4);

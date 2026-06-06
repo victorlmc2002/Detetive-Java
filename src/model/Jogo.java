@@ -6,7 +6,9 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
-public class Jogo {
+// Agregado interno do Model. NÃO é mais público: o único ponto de acesso ao
+// Model a partir da View/Controller é a Fachada (padrão Façade).
+class Jogo {
 
 	// Suspeitos na ordem oficial de jogada (Scarlet começa, item 7 da Preparação).
 	private static final String[] SUSPEITOS_NA_ORDEM = {
@@ -27,6 +29,8 @@ public class Jogo {
 	private int indiceVez;
 	private boolean partidaIniciada = false;
 	private int ultimoLancamento = 0;
+	private int valorDado1 = 0;
+	private int valorDado2 = 0;
 
 	public Jogo() {
 		this.tabuleiro = new Tabuleiro();
@@ -92,6 +96,36 @@ public class Jogo {
 	public int lancarDado() {
 		ultimoLancamento = dado.lancar();
 		return ultimoLancamento;
+	}
+
+	// Lança os DOIS dados aleatoriamente (Clue usa 2 dados). Guarda os valores
+	// individuais — para a View exibir as duas imagens — e o total, usado pela
+	// movimentação. Retorna o total.
+	public int lancarDados() {
+		valorDado1 = dado.lancar();
+		valorDado2 = dado.lancar();
+		ultimoLancamento = valorDado1 + valorDado2;
+		return ultimoLancamento;
+	}
+
+	// Permite que o TESTADOR defina os valores dos dados (requisito da 3ª
+	// iteração), em vez de obtê-los por randomização. Retorna o total.
+	public int definirDados(int d1, int d2) {
+		if (d1 < 1 || d1 > 6 || d2 < 1 || d2 > 6) {
+			throw new IllegalArgumentException("Valores de dado devem estar entre 1 e 6");
+		}
+		valorDado1 = d1;
+		valorDado2 = d2;
+		ultimoLancamento = d1 + d2;
+		return ultimoLancamento;
+	}
+
+	public int getDado1() {
+		return valorDado1;
+	}
+
+	public int getDado2() {
+		return valorDado2;
 	}
 
 	public int passosRestantes() {
