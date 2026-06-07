@@ -31,6 +31,22 @@ class Jogo {
 	private int ultimoLancamento = 0;
 	private int valorDado1 = 0;
 	private int valorDado2 = 0;
+	private final Set<Integer> eliminados = new HashSet<>();
+
+	// Listas estáticas — espelham Carta.criarBaralhoCompleto().
+	private static final String[] LISTA_SUSPEITOS = {
+		"Srta. Scarlet", "Coronel Mustard", "Sra. White",
+		"Reverendo Green", "Sra. Peacock", "Professor Plum"
+	};
+	private static final String[] LISTA_ARMAS = {
+		"Corda", "Cano de Chumbo", "Faca",
+		"Chave Inglesa", "Castiçal", "Revólver"
+	};
+	private static final String[] LISTA_COMODOS = {
+		"Cozinha", "Sala de Música", "Jardim de Inverno",
+		"Sala de Jantar", "Salão de Jogos", "Biblioteca",
+		"Sala de Estar", "Entrada", "Escritório"
+	};
 
 	public Jogo() {
 		this.tabuleiro = new Tabuleiro();
@@ -209,7 +225,16 @@ class Jogo {
 
 	public void proximoJogador() {
 		verificarPartidaIniciada();
-		indiceVez = (indiceVez + 1) % jogadores.size();
+		int n = jogadores.size();
+		// Avança até o próximo jogador não eliminado.
+		for (int i = 1; i <= n; i++) {
+			int candidato = (indiceVez + i) % n;
+			if (!eliminados.contains(candidato)) {
+				indiceVez = candidato;
+				return;
+			}
+		}
+		// Todos eliminados (não deveria acontecer; mantém o índice atual).
 	}
 
 	public List<String> cartasDoJogador(String nomeJogador) {
@@ -225,6 +250,79 @@ class Jogo {
 	public int totalDeJogadores() {
 		verificarPartidaIniciada();
 		return jogadores.size();
+	}
+
+	// ---- Palpite / Acusação ----
+
+	boolean estaEmComodo() {
+		verificarPartidaIniciada();
+		return jogadores.get(indiceVez).getPeao().getCasa().ehInterior();
+	}
+
+	String comodoAtual() {
+		verificarPartidaIniciada();
+		Casa c = jogadores.get(indiceVez).getPeao().getCasa();
+		if (!c.ehInterior()) {
+			throw new IllegalStateException("Jogador não está em cômodo");
+		}
+		return c.getComodo().getNome();
+	}
+
+	List<String> getSuspeitos() {
+		List<String> lista = new ArrayList<>();
+		for (String s : LISTA_SUSPEITOS) lista.add(s);
+		return lista;
+	}
+
+	List<String> getArmas() {
+		List<String> lista = new ArrayList<>();
+		for (String a : LISTA_ARMAS) lista.add(a);
+		return lista;
+	}
+
+	List<String> getComodos() {
+		List<String> lista = new ArrayList<>();
+		for (String c : LISTA_COMODOS) lista.add(c);
+		return lista;
+	}
+
+	// Tenta refutar o palpite percorrendo os outros jogadores em ordem de turno.
+	// Retorna "NomeJogador|NomeCarta" do primeiro que pode refutar, ou null.
+	String tentarRefutar(String nomeSuspeito, String nomeArma, String nomeComodo) {
+		verificarPartidaIniciada();
+		Carta cs = new Carta(TipoCarta.SUSPEITO, nomeSuspeito);
+		Carta ca = new Carta(TipoCarta.ARMA,     nomeArma);
+		Carta cc = new Carta(TipoCarta.COMODO,   nomeComodo);
+		int n = jogadores.size();
+		for (int i = 1; i < n; i++) {
+			int idx = (indiceVez + i) % n;
+			Jogador j = jogadores.get(idx);
+			List<Carta> provas = j.cartasQueProvam(cs, ca, cc);
+			if (!provas.isEmpty()) {
+				// Escolhe a primeira carta disponível (regra simplificada).
+				return j.getNome() + "|" + provas.get(0).getNome();
+			}
+		}
+		return null; // ninguém refutou
+	}
+
+	// Verifica se a acusação bate com o envelope.
+	boolean verificarAcusacao(String nomeSuspeito, String nomeArma, String nomeComodo) {
+		verificarPartidaIniciada();
+		return envelope.getSuspeito().getNome().equals(nomeSuspeito)
+			&& envelope.getArma().getNome().equals(nomeArma)
+			&& envelope.getComodo().getNome().equals(nomeComodo);
+	}
+
+	// Elimina o jogador da vez (acusação errada).
+	void eliminarJogadorDaVez() {
+		verificarPartidaIniciada();
+		eliminados.add(indiceVez);
+	}
+
+	boolean jogadorDaVezEliminado() {
+		verificarPartidaIniciada();
+		return eliminados.contains(indiceVez);
 	}
 
 	// ---- Métodos internos (package-private) usados nos testes ----

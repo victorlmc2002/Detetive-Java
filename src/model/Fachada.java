@@ -87,6 +87,50 @@ public class Fachada implements IObservado {
 		notificarObservadores(EventoJogo.TURNO_AVANCADO);
 	}
 
+	// Faz um palpite (suspeito + arma no cômodo atual).
+	// Retorna "NomeJogador|NomeCarta" se alguém refutou, ou null.
+	public String fazerPalpite(String suspeito, String arma) {
+		String comodo = jogo.comodoAtual();
+		String resultado = jogo.tentarRefutar(suspeito, arma, comodo);
+		notificarObservadores(EventoJogo.PALPITE_FEITO);
+		return resultado;
+	}
+
+	// Faz uma acusação formal. Retorna true se o jogador venceu.
+	// Se errou, elimina o jogador da vez e notifica FIM_DE_JOGO.
+	public boolean fazerAcusacao(String suspeito, String arma, String comodo) {
+		boolean acertou = jogo.verificarAcusacao(suspeito, arma, comodo);
+		if (!acertou) {
+			jogo.eliminarJogadorDaVez();
+		}
+		notificarObservadores(EventoJogo.FIM_DE_JOGO);
+		return acertou;
+	}
+
+	public boolean estaEmComodo() {
+		return jogo.estaEmComodo();
+	}
+
+	public String comodoAtual() {
+		return jogo.comodoAtual();
+	}
+
+	public List<String> getSuspeitos() {
+		return jogo.getSuspeitos();
+	}
+
+	public List<String> getArmas() {
+		return jogo.getArmas();
+	}
+
+	public List<String> getComodos() {
+		return jogo.getComodos();
+	}
+
+	public boolean jogadorDaVezEliminado() {
+		return jogo.jogadorDaVezEliminado();
+	}
+
 	// ===================== Consultas (somente leitura) ====================
 
 	public boolean partidaIniciada() {

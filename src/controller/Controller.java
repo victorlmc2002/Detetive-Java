@@ -2,6 +2,7 @@ package controller;
 
 import java.util.List;
 
+import model.EventoJogo;
 import model.Fachada;
 import model.Posicao;
 
@@ -18,13 +19,16 @@ public class Controller {
 	public enum EstadoTurno {
 		AGUARDANDO_DADO,       // jogador ainda não lançou os dados
 		AGUARDANDO_MOVIMENTO,  // dados lançados; aguarda clique no destino
-		FIM_TURNO              // peão movido; aguarda "Próximo Jogador"
+		FIM_TURNO,             // peão movido; aguarda ação ou "Próximo Jogador"
+		FIM_DE_JOGO            // partida encerrada (vitória ou derrota definitiva)
 	}
 
 	private static Controller instancia;
 
 	private final Fachada fachada = Fachada.getInstance();
 	private EstadoTurno estado = EstadoTurno.AGUARDANDO_DADO;
+	// Controla se o jogador da vez já fez palpite neste turno.
+	private boolean palpiteFeito = false;
 
 	private Controller() {
 	}
@@ -76,7 +80,57 @@ public class Controller {
 	// Passa a vez para o próximo jogador e reinicia o ciclo do turno.
 	public void avancarTurno() {
 		if (estado != EstadoTurno.FIM_TURNO) return;
+		palpiteFeito = false;
 		estado = EstadoTurno.AGUARDANDO_DADO;
 		fachada.proximoJogador();
+	}
+
+	// Faz um palpite: suspeito + arma no cômodo atual (inferido pela Fachada).
+	// Só permitido em FIM_TURNO, quando o jogador está em um cômodo,
+	// e apenas uma vez por turno.
+	// Retorna "NomeJogador|NomeCarta" se alguém refutou, ou null.
+	public String fazerPalpite(String suspeito, String arma) {
+		if (estado != EstadoTurno.FIM_TURNO) return null;
+		if (palpiteFeito) return null;
+		if (!fachada.estaEmComodo()) return null;
+		palpiteFeito = true;
+		return fachada.fazerPalpite(suspeito, arma);
+	}
+
+	// Verifica se o palpite pode ser feito agora.
+	public boolean podeFazerPalpite() {
+		return estado == EstadoTurno.FIM_TURNO
+			&& !palpiteFeito
+			&& fachada.partidaIniciada()
+			&& fachada.estaEmComodo();
+	}
+
+	// Faz uma acusação formal. Pode ser feita em qualquer estado ativo.
+	// Retorna true se acertou (jogo termina). Retorna false se errou (eliminado).
+	public boolean fazerAcusacao(String suspeito, String arma, String comodo) {
+		if (estado == EstadoTurno.FIM_DE_JOGO) return false;
+		if (!fachada.partidaIniciada()) return false;
+		boolean venceu = fachada.fazerAcusacao(suspeito, arma, comodo);
+		if (venceu) {
+			estado = EstadoTurno.FIM_DE_JOGO;
+		} else {
+			// Jogador eliminado: avança o turno automaticamente.
+			palpiteFeito = false;
+			estado = EstadoTurno.AGUARDANDO_DADO;
+			fachada.proximoJogador();
+		}
+		return venceu;
+	}
+
+	// Dispara o evento de exibição das cartas do jogador da vez.
+	public void exibirCartas() {
+		if (!fachada.partidaIniciada()) return;
+		fachada.notificarObservadores(EventoJogo.EXIBIR_CARTAS);
+	}
+
+	// Dispara o evento de exibição das anotações de palpites.
+	public void exibirAnotacoes() {
+		if (!fachada.partidaIniciada()) return;
+		fachada.notificarObservadores(EventoJogo.EXIBIR_ANOTACOES);
 	}
 }

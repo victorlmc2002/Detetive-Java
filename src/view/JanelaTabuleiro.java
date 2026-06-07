@@ -27,6 +27,7 @@ import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
 import controller.Controller;
@@ -86,8 +87,16 @@ public class JanelaTabuleiro extends JFrame implements IObservador {
 	private JButton             botaoDado;
 	private JButton             botaoDefinir;
 	private JButton             botaoProximo;
+	private JButton             botaoCartas;
+	private JButton             botaoAnotacoes;
+	private JButton             botaoPalpite;
+	private JButton             botaoAcusacao;
 	private JComboBox<Integer>  comboD1;
 	private JComboBox<Integer>  comboD2;
+
+	// Janelas auxiliares (Observer)
+	private final JanelaCartas    janelaCartas    = new JanelaCartas();
+	private final JanelaAnotacoes janelaAnotacoes = new JanelaAnotacoes();
 
 	// =========================================================================
 	// Construtor
@@ -203,6 +212,43 @@ public class JanelaTabuleiro extends JFrame implements IObservador {
 			}
 		});
 
+		// --- Botoes de regras ---
+		botaoCartas = new JButton("Minhas Cartas");
+		estilizarBotao(botaoCartas);
+		botaoCartas.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				controller.exibirCartas();
+			}
+		});
+
+		botaoAnotacoes = new JButton("Anotações");
+		estilizarBotao(botaoAnotacoes);
+		botaoAnotacoes.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				controller.exibirAnotacoes();
+			}
+		});
+
+		botaoPalpite = new JButton("Fazer Palpite");
+		estilizarBotao(botaoPalpite);
+		botaoPalpite.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				abrirDialogPalpite();
+			}
+		});
+
+		botaoAcusacao = new JButton("Fazer Acusação");
+		estilizarBotao(botaoAcusacao);
+		botaoAcusacao.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				abrirDialogAcusacao();
+			}
+		});
+
 		// --- Botao: proximo jogador (fica no fundo do painel) ---
 		botaoProximo = new JButton("Proximo Jogador");
 		estilizarBotao(botaoProximo);
@@ -228,6 +274,14 @@ public class JanelaTabuleiro extends JFrame implements IObservador {
 		painel.add(painelCombos);
 		painel.add(Box.createVerticalStrut(6));
 		painel.add(botaoDefinir);
+		painel.add(Box.createVerticalStrut(20));
+		painel.add(botaoCartas);
+		painel.add(Box.createVerticalStrut(6));
+		painel.add(botaoAnotacoes);
+		painel.add(Box.createVerticalStrut(6));
+		painel.add(botaoPalpite);
+		painel.add(Box.createVerticalStrut(6));
+		painel.add(botaoAcusacao);
 		painel.add(Box.createVerticalGlue());
 		painel.add(botaoProximo);
 		painel.add(Box.createVerticalStrut(10));
@@ -275,12 +329,137 @@ public class JanelaTabuleiro extends JFrame implements IObservador {
 			alcancaveis = null;
 		}
 
+		boolean partidaAtiva = fachada.partidaIniciada()
+				&& estado != Controller.EstadoTurno.FIM_DE_JOGO;
+
 		// Habilita/desabilita botoes de acordo com o estado do turno.
-		botaoDado.setEnabled(estado == Controller.EstadoTurno.AGUARDANDO_DADO);
-		botaoDefinir.setEnabled(estado == Controller.EstadoTurno.AGUARDANDO_DADO);
-		botaoProximo.setEnabled(estado == Controller.EstadoTurno.FIM_TURNO);
+		botaoDado.setEnabled(estadoAtivo(estado, Controller.EstadoTurno.AGUARDANDO_DADO));
+		botaoDefinir.setEnabled(estadoAtivo(estado, Controller.EstadoTurno.AGUARDANDO_DADO));
+		botaoProximo.setEnabled(estadoAtivo(estado, Controller.EstadoTurno.FIM_TURNO));
+		botaoCartas.setEnabled(partidaAtiva);
+		botaoAnotacoes.setEnabled(partidaAtiva);
+		botaoPalpite.setEnabled(controller.podeFazerPalpite());
+		botaoAcusacao.setEnabled(partidaAtiva);
 
 		painelTabuleiro.repaint();
+	}
+
+	/** Auxiliar: true se a partida está ativa e o estado bate. */
+	private boolean estadoAtivo(Controller.EstadoTurno atual, Controller.EstadoTurno esperado) {
+		return fachada.partidaIniciada()
+			&& atual != Controller.EstadoTurno.FIM_DE_JOGO
+			&& atual == esperado;
+	}
+
+	// =========================================================================
+	// Dialogs de Palpite e Acusação
+	// =========================================================================
+
+	/**
+	 * Abre um JOptionPane com dois JComboBox (suspeito + arma).
+	 * O cômodo é inferido automaticamente (cômodo atual do jogador).
+	 * Chama controller.fazerPalpite() e exibe o resultado.
+	 */
+	private void abrirDialogPalpite() {
+		List<String> suspeitos = fachada.getSuspeitos();
+		List<String> armas     = fachada.getArmas();
+
+		JComboBox<String> cbSuspeito = new JComboBox<String>(suspeitos.toArray(new String[0]));
+		JComboBox<String> cbArma     = new JComboBox<String>(armas.toArray(new String[0]));
+
+		String comodo = fachada.comodoAtual();
+
+		JPanel painel = new JPanel();
+		painel.setLayout(new javax.swing.BoxLayout(painel, javax.swing.BoxLayout.Y_AXIS));
+		painel.add(new JLabel("Cômodo: " + comodo));
+		painel.add(Box.createVerticalStrut(6));
+		painel.add(new JLabel("Suspeito:"));
+		painel.add(cbSuspeito);
+		painel.add(Box.createVerticalStrut(6));
+		painel.add(new JLabel("Arma:"));
+		painel.add(cbArma);
+
+		int opcao = JOptionPane.showConfirmDialog(this, painel,
+				"Fazer Palpite", JOptionPane.OK_CANCEL_OPTION);
+		if (opcao != JOptionPane.OK_OPTION) return;
+
+		String suspeito = (String) cbSuspeito.getSelectedItem();
+		String arma     = (String) cbArma.getSelectedItem();
+		String jogador  = fachada.jogadorDaVez();
+
+		// Registra antes de chamar o Controller (para ter os dados no evento PALPITE_FEITO).
+		String resultado = controller.fazerPalpite(suspeito, arma);
+
+		String refutador = null, carta = null;
+		if (resultado != null) {
+			String[] partes = resultado.split("\\|", 2);
+			refutador = partes[0];
+			carta = partes.length > 1 ? partes[1] : "?";
+		}
+
+		// Registra nas anotações (o evento PALPITE_FEITO já foi disparado pelo Model,
+		// mas os dados do resultado só chegam aqui; por isso atualizamos diretamente).
+		janelaAnotacoes.registrarPalpite(jogador, suspeito, arma, comodo, refutador, carta);
+
+		// Exibe resultado ao jogador da vez.
+		if (resultado == null) {
+			JOptionPane.showMessageDialog(this,
+				"<html>Nenhum jogador pôde refutar o palpite!<br>" +
+				"<b>" + suspeito + "</b> com <b>" + arma + "</b> no <b>" + comodo + "</b></html>",
+				"Palpite não refutado", JOptionPane.INFORMATION_MESSAGE);
+		} else {
+			JOptionPane.showMessageDialog(this,
+				"<html><b>" + refutador + "</b> mostrou a carta:<br><b>" + carta + "</b></html>",
+				"Palpite refutado", JOptionPane.INFORMATION_MESSAGE);
+		}
+	}
+
+	/**
+	 * Abre um JOptionPane com três JComboBox (suspeito + arma + cômodo).
+	 * Chama controller.fazerAcusacao() e exibe vitória ou eliminação.
+	 */
+	private void abrirDialogAcusacao() {
+		List<String> suspeitos = fachada.getSuspeitos();
+		List<String> armas     = fachada.getArmas();
+		List<String> comodos   = fachada.getComodos();
+
+		JComboBox<String> cbSuspeito = new JComboBox<String>(suspeitos.toArray(new String[0]));
+		JComboBox<String> cbArma     = new JComboBox<String>(armas.toArray(new String[0]));
+		JComboBox<String> cbComodo   = new JComboBox<String>(comodos.toArray(new String[0]));
+
+		JPanel painel = new JPanel();
+		painel.setLayout(new javax.swing.BoxLayout(painel, javax.swing.BoxLayout.Y_AXIS));
+		painel.add(new JLabel("Suspeito:"));
+		painel.add(cbSuspeito);
+		painel.add(Box.createVerticalStrut(6));
+		painel.add(new JLabel("Arma:"));
+		painel.add(cbArma);
+		painel.add(Box.createVerticalStrut(6));
+		painel.add(new JLabel("Cômodo:"));
+		painel.add(cbComodo);
+
+		int opcao = JOptionPane.showConfirmDialog(this, painel,
+				"Fazer Acusação", JOptionPane.OK_CANCEL_OPTION);
+		if (opcao != JOptionPane.OK_OPTION) return;
+
+		String suspeito = (String) cbSuspeito.getSelectedItem();
+		String arma     = (String) cbArma.getSelectedItem();
+		String comodo   = (String) cbComodo.getSelectedItem();
+		String jogador  = fachada.jogadorDaVez();
+
+		boolean venceu = controller.fazerAcusacao(suspeito, arma, comodo);
+
+		if (venceu) {
+			JOptionPane.showMessageDialog(this,
+				"<html><b>" + jogador + "</b> venceu!<br>" +
+				"Foi <b>" + suspeito + "</b> com <b>" + arma + "</b> no <b>" + comodo + "</b>!</html>",
+				"🏆 Vitória!", JOptionPane.INFORMATION_MESSAGE);
+		} else {
+			JOptionPane.showMessageDialog(this,
+				"<html>Acusação errada! <b>" + jogador + "</b> foi eliminado.<br>" +
+				"A partida continua para os demais jogadores.</html>",
+				"Eliminado", JOptionPane.WARNING_MESSAGE);
+		}
 	}
 
 	// =========================================================================
