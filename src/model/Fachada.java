@@ -48,7 +48,7 @@ public class Fachada implements IObservado {
 	public void notificarObservadores(Object evento) {
 		// Cópia defensiva: um observador pode se registrar/remover ao ser avisado.
 		for (IObservador o : new ArrayList<>(observadores)) {
-			o.notificar(evento);
+			o.notificar(this, evento);
 		}
 	}
 

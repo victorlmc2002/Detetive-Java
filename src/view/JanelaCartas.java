@@ -60,7 +60,7 @@ public class JanelaCartas extends JFrame implements IObservador {
 	// Observer
 	// =========================================================================
 	@Override
-	public void notificar(Object evento) {
+	public void notificar(model.IObservado origem, Object evento) {
 		if (evento == EventoJogo.EXIBIR_CARTAS) {
 			atualizar();
 			setVisible(true);

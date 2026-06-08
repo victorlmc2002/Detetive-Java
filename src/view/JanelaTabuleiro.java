@@ -134,9 +134,10 @@ public class JanelaTabuleiro extends JFrame implements IObservador {
 	// Observer: chamado pela Fachada a cada mudanca de estado da partida.
 	// =========================================================================
 	@Override
-	public void notificar(Object evento) {
+	public void notificar(model.IObservado origem, Object evento) {
 		// Estamos sempre na EDT (a Fachada e acionada por handlers Swing),
-		// entao basta reler o estado e redesenhar.
+		// entao basta reler o estado e redesenhar. A 'origem' está disponível
+		// para callback estilo Cap. 17 — aqui usamos a Singleton 'fachada' diretamente.
 		atualizarInterface();
 	}
 
