@@ -19,7 +19,7 @@ class Tabuleiro {
 	// G=Salão de Jogos, B=Biblioteca,
 	// L=Sala de Estar, E=Entrada, O=Escritório
 	private static final String[] LAYOUT = {
-	"KKKKKKXXX.XXXX.XXXXXXXXX",
+		"XXXXXXXXX.XXXX.XXXXXXXXX",
 		"KKKKKKX...MMMM...XJJJJJJ",
 		"KKKKKK..MMMMMMMM..JJJJJJ",
 		"KKKKKK..MMMMMMMM..JJJJJJ",

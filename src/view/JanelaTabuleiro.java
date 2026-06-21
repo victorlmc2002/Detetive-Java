@@ -17,6 +17,8 @@ import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
@@ -25,10 +27,12 @@ import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
 import controller.Controller;
 import model.Fachada;
@@ -58,13 +62,18 @@ public class JanelaTabuleiro extends JFrame implements IObservador {
 	private static final int LINHAS  = 25;
 	private static final int COLUNAS = 24;
 
-	// Calibracao: fracao da imagem ocupada pelas margens (borda
-	// cinza, rotulos dos comodos, abas de partida dos peoes). A grade jogavel
-	// 25x24 fica dentro do retangulo (FRAC_LEFT, FRAC_TOP) -> (1-FRAC_RIGHT, 1-FRAC_BOTTOM)
-	private static final double FRAC_LEFT   = 0.070;
-	private static final double FRAC_TOP    = 0.070;
-	private static final double FRAC_RIGHT  = 0.070;
-	private static final double FRAC_BOTTOM = 0.070;
+	// Calibracao: fracao da imagem ocupada pelas margens (borda do tabuleiro).
+	// A grade jogavel 25x24 fica dentro do retangulo
+	// (FRAC_LEFT, FRAC_TOP) -> (1-FRAC_RIGHT, 1-FRAC_BOTTOM).
+	//
+	// Valores calibrados para Tabuleiro-Clue-C.jpg (600x625 px): a area jogavel,
+	// medida a partir das linhas dos quadrados de corredor, fica em x=[8.5, 590.5]
+	// e y=[9.4, 615.6], com celulas de ~24,25 px. Ao trocar a imagem do tabuleiro,
+	// recalibre estes quatro valores.
+	private static final double FRAC_LEFT   = 0.0150;
+	private static final double FRAC_TOP    = 0.0150;
+	private static final double FRAC_RIGHT  = 0.0150;
+	private static final double FRAC_BOTTOM = 0.0150;
 
 	// Ligue para true para desenhar a grade 25x24 sobre a imagem (calibracao).
 	private static final boolean DEBUG_GRADE = false;
@@ -86,17 +95,19 @@ public class JanelaTabuleiro extends JFrame implements IObservador {
 	private JPanel              painelDados;
 	private JButton             botaoDado;
 	private JButton             botaoDefinir;
+	private JButton             botaoGabarito;
 	private JButton             botaoProximo;
 	private JButton             botaoCartas;
-	private JButton             botaoAnotacoes;
+	private JButton             botaoBlocoNotas;
 	private JButton             botaoPalpite;
 	private JButton             botaoAcusacao;
+	private JButton             botaoSalvar;
 	private JComboBox<Integer>  comboD1;
 	private JComboBox<Integer>  comboD2;
 
 	// Janelas auxiliares (Observer)
-	private final JanelaCartas    janelaCartas    = new JanelaCartas();
-	private final JanelaAnotacoes janelaAnotacoes = new JanelaAnotacoes();
+	private final JanelaCartas     janelaCartas     = new JanelaCartas();
+	private final JanelaBlocoNotas janelaBlocoNotas = new JanelaBlocoNotas();
 
 	// =========================================================================
 	// Construtor
@@ -136,8 +147,7 @@ public class JanelaTabuleiro extends JFrame implements IObservador {
 	@Override
 	public void notificar(model.IObservado origem, Object evento) {
 		// Estamos sempre na EDT (a Fachada e acionada por handlers Swing),
-		// entao basta reler o estado e redesenhar. A 'origem' está disponível
-		// para callback estilo Cap. 17 — aqui usamos a Singleton 'fachada' diretamente.
+		// entao basta reler o estado e redesenhar. 
 		atualizarInterface();
 	}
 
@@ -213,6 +223,16 @@ public class JanelaTabuleiro extends JFrame implements IObservador {
 			}
 		});
 
+		// Botao que revela o gabarito (envelope confidencial) — apoio ao testador.
+		botaoGabarito = new JButton("Ver Gabarito");
+		estilizarBotao(botaoGabarito);
+		botaoGabarito.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				exibirGabarito();
+			}
+		});
+
 		// --- Botoes de regras ---
 		botaoCartas = new JButton("Minhas Cartas");
 		estilizarBotao(botaoCartas);
@@ -223,12 +243,12 @@ public class JanelaTabuleiro extends JFrame implements IObservador {
 			}
 		});
 
-		botaoAnotacoes = new JButton("Anotações");
-		estilizarBotao(botaoAnotacoes);
-		botaoAnotacoes.addActionListener(new ActionListener() {
+		botaoBlocoNotas = new JButton("Bloco de Notas");
+		estilizarBotao(botaoBlocoNotas);
+		botaoBlocoNotas.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				controller.exibirAnotacoes();
+				controller.exibirBlocoNotas();
 			}
 		});
 
@@ -247,6 +267,16 @@ public class JanelaTabuleiro extends JFrame implements IObservador {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				abrirDialogAcusacao();
+			}
+		});
+
+		// --- Botao: salvar partida (so habilitado antes de lancar os dados) ---
+		botaoSalvar = new JButton("Salvar Partida");
+		estilizarBotao(botaoSalvar);
+		botaoSalvar.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				salvarPartida();
 			}
 		});
 
@@ -275,14 +305,18 @@ public class JanelaTabuleiro extends JFrame implements IObservador {
 		painel.add(painelCombos);
 		painel.add(Box.createVerticalStrut(6));
 		painel.add(botaoDefinir);
+		painel.add(Box.createVerticalStrut(6));
+		painel.add(botaoGabarito);
 		painel.add(Box.createVerticalStrut(20));
 		painel.add(botaoCartas);
 		painel.add(Box.createVerticalStrut(6));
-		painel.add(botaoAnotacoes);
+		painel.add(botaoBlocoNotas);
 		painel.add(Box.createVerticalStrut(6));
 		painel.add(botaoPalpite);
 		painel.add(Box.createVerticalStrut(6));
 		painel.add(botaoAcusacao);
+		painel.add(Box.createVerticalStrut(6));
+		painel.add(botaoSalvar);
 		painel.add(Box.createVerticalGlue());
 		painel.add(botaoProximo);
 		painel.add(Box.createVerticalStrut(10));
@@ -338,9 +372,11 @@ public class JanelaTabuleiro extends JFrame implements IObservador {
 		botaoDefinir.setEnabled(estadoAtivo(estado, Controller.EstadoTurno.AGUARDANDO_DADO));
 		botaoProximo.setEnabled(estadoAtivo(estado, Controller.EstadoTurno.FIM_TURNO));
 		botaoCartas.setEnabled(partidaAtiva);
-		botaoAnotacoes.setEnabled(partidaAtiva);
+		botaoBlocoNotas.setEnabled(partidaAtiva);
 		botaoPalpite.setEnabled(controller.podeFazerPalpite());
 		botaoAcusacao.setEnabled(partidaAtiva);
+		// Salvar so e permitido no inicio do turno (antes de lancar os dados).
+		botaoSalvar.setEnabled(controller.podeSalvar());
 
 		painelTabuleiro.repaint();
 	}
@@ -386,9 +422,7 @@ public class JanelaTabuleiro extends JFrame implements IObservador {
 
 		String suspeito = (String) cbSuspeito.getSelectedItem();
 		String arma     = (String) cbArma.getSelectedItem();
-		String jogador  = fachada.jogadorDaVez();
 
-		// Registra antes de chamar o Controller (para ter os dados no evento PALPITE_FEITO).
 		String resultado = controller.fazerPalpite(suspeito, arma);
 
 		String refutador = null, carta = null;
@@ -398,10 +432,7 @@ public class JanelaTabuleiro extends JFrame implements IObservador {
 			carta = partes.length > 1 ? partes[1] : "?";
 		}
 
-		// Registra nas anotações (o evento PALPITE_FEITO já foi disparado pelo Model,
-		// mas os dados do resultado só chegam aqui; por isso atualizamos diretamente).
-		janelaAnotacoes.registrarPalpite(jogador, suspeito, arma, comodo, refutador, carta);
-
+		// O jogador da vez pode anotar a carta mostrada no seu Bloco de Notas.
 		// Exibe resultado ao jogador da vez.
 		if (resultado == null) {
 			JOptionPane.showMessageDialog(this,
@@ -451,16 +482,93 @@ public class JanelaTabuleiro extends JFrame implements IObservador {
 		boolean venceu = controller.fazerAcusacao(suspeito, arma, comodo);
 
 		if (venceu) {
-			JOptionPane.showMessageDialog(this,
-				"<html><b>" + jogador + "</b> venceu!<br>" +
-				"Foi <b>" + suspeito + "</b> com <b>" + arma + "</b> no <b>" + comodo + "</b>!</html>",
-				"🏆 Vitória!", JOptionPane.INFORMATION_MESSAGE);
+			encerrarPartida(jogador, suspeito, arma, comodo);
 		} else {
 			JOptionPane.showMessageDialog(this,
 				"<html>Acusação errada! <b>" + jogador + "</b> foi eliminado.<br>" +
 				"A partida continua para os demais jogadores.</html>",
 				"Eliminado", JOptionPane.WARNING_MESSAGE);
 		}
+	}
+
+	/**
+	 * Encerramento de uma partida (4ª iteração): anuncia o vencedor e pergunta
+	 * se os jogadores desejam iniciar uma nova partida. Em caso afirmativo, a
+	 * janela de escolha de personagens (2ª iteração) é reaberta; caso contrário,
+	 * a aplicação é encerrada.
+	 */
+	private void encerrarPartida(String jogador, String suspeito, String arma, String comodo) {
+		int opcao = JOptionPane.showConfirmDialog(this,
+			"<html><b>" + jogador + "</b> venceu!<br>" +
+			"Foi <b>" + suspeito + "</b> com <b>" + arma + "</b> no <b>" + comodo + "</b>!<br><br>" +
+			"Deseja iniciar uma nova partida?</html>",
+			"Vitória!", JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE);
+
+		if (opcao == JOptionPane.YES_OPTION) {
+			// Remove os observadores desta partida e libera as janelas auxiliares
+			// antes de reabrir a escolha de personagens para uma nova partida.
+			fachada.removerObservador(this);
+			fachada.removerObservador(janelaCartas);
+			fachada.removerObservador(janelaBlocoNotas);
+			janelaCartas.dispose();
+			janelaBlocoNotas.dispose();
+			dispose();
+			new JanelaPersonagens().setVisible(true);
+		} else {
+			System.exit(0);
+		}
+	}
+
+	// =========================================================================
+	// Salvamento (JFileChooser + Façade)
+	// =========================================================================
+
+	/**
+	 * Abre um JFileChooser para o usuário escolher livremente o nome e o local
+	 * do arquivo texto (.txt) onde o estado da partida será gravado. O filetype
+	 * é pré-fixado em .txt (acrescentado se o usuário não digitar a extensão).
+	 */
+	private void salvarPartida() {
+		JFileChooser chooser = new JFileChooser();
+		chooser.setDialogTitle("Salvar Partida");
+		chooser.setAcceptAllFileFilterUsed(false);
+		chooser.setFileFilter(new FileNameExtensionFilter("Arquivo de texto (*.txt)", "txt"));
+		chooser.setSelectedFile(new File("partida.txt"));
+
+		if (chooser.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) return;
+
+		File arquivo = chooser.getSelectedFile();
+		if (!arquivo.getName().toLowerCase().endsWith(".txt")) {
+			arquivo = new File(arquivo.getParentFile(), arquivo.getName() + ".txt");
+		}
+
+		try {
+			controller.salvarPartida(arquivo);
+			JOptionPane.showMessageDialog(this,
+				"Partida salva em:\n" + arquivo.getAbsolutePath(),
+				"Salvar Partida", JOptionPane.INFORMATION_MESSAGE);
+		} catch (IOException ex) {
+			JOptionPane.showMessageDialog(this,
+				"Erro ao salvar a partida:\n" + ex.getMessage(),
+				"Erro", JOptionPane.ERROR_MESSAGE);
+		}
+	}
+
+	// Modo teste: mostra o conteúdo do envelope confidencial (suspeito, arma,
+	// cômodo) num diálogo, para o testador conferir palpites e acusações.
+	private void exibirGabarito() {
+		if (!fachada.partidaIniciada()) {
+			JOptionPane.showMessageDialog(this,
+				"Nenhuma partida em andamento.",
+				"Gabarito", JOptionPane.WARNING_MESSAGE);
+			return;
+		}
+		List<String> g = fachada.getGabarito();
+		String msg = "Suspeito: " + g.get(0)
+			+ "\nArma: "    + g.get(1)
+			+ "\nCômodo: "  + g.get(2);
+		JOptionPane.showMessageDialog(this, msg,
+			"Gabarito (Modo Teste)", JOptionPane.INFORMATION_MESSAGE);
 	}
 
 	// =========================================================================

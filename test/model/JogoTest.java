@@ -130,6 +130,34 @@ public class JogoTest {
 	}
 
 	@Test
+	public void respeitaSuspeitosEscolhidosEOrdenaPelaRegra() {
+		Jogo jogo = new Jogo(5L);
+		// Suspeitos fora da ordem canônica; nomes pareados por posição.
+		jogo.iniciarPartida(
+			Arrays.asList("Ana", "Bruno", "Carla"),
+			Arrays.asList("Sra. Peacock", "Srta. Scarlet", "Sra. White"));
+
+		// Scarlet sempre começa; o nome pareado a ela ("Bruno") deve ser a vez.
+		assertEquals("Srta. Scarlet", jogo.suspeitoDaVez());
+		assertEquals("Bruno", jogo.jogadorDaVez());
+
+		// Os peões em jogo são exatamente os escolhidos (nem mais, nem menos).
+		assertEquals(
+			new HashSet<>(Arrays.asList("Srta. Scarlet", "Sra. White", "Sra. Peacock")),
+			new HashSet<>(jogo.suspeitosEmJogo()));
+
+		// O peão de Peacock nasce na sua casa inicial (6,23).
+		assertEquals(new Posicao(6, 23), jogo.posicaoDoPiao("Sra. Peacock"));
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void rejeitaSuspeitosRepetidos() {
+		new Jogo().iniciarPartida(
+			Arrays.asList("A", "B", "C"),
+			Arrays.asList("Srta. Scarlet", "Srta. Scarlet", "Sra. White"));
+	}
+
+	@Test
 	public void mesmaSementeProduzMesmoEstadoInicial() {
 		Jogo a = new Jogo(123L);
 		Jogo b = new Jogo(123L);

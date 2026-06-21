@@ -24,16 +24,21 @@ import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JTextField;
 
 import controller.Controller;
 
-// Segunda janela: o usuário escolhe quais suspeitos participam clicando nas cartas.
+// Segunda janela: o usuário escolhe quais suspeitos participam clicando nas cartas
+// e digita o NOME de cada jogador no campo abaixo da respectiva carta.
 // Scarlet sempre joga, demais são opcionais. Mínimo de 3 jogadores no total.
 public class JanelaPersonagens extends JFrame {
 
 	private static final long serialVersionUID = 1L;
 
 	private final PainelCarta[] cartas = new PainelCarta[Recursos.SUSPEITOS.length];
+	// Campo de nome de cada jogador (paralelo a 'cartas'); habilitado só quando
+	// a carta correspondente está selecionada.
+	private final JTextField[] nomes = new JTextField[Recursos.SUSPEITOS.length];
 	private final JButton botaoJogar = new JButton("Jogar");
 	private final JLabel contador = new JLabel();
 
@@ -67,7 +72,23 @@ public class JanelaPersonagens extends JFrame {
 		for (int i = 0; i < Recursos.SUSPEITOS.length; i++) {
 			boolean obrigatorio = (i == 0);
 			cartas[i] = new PainelCarta(Recursos.SUSPEITOS[i], obrigatorio);
-			grade.add(cartas[i]);
+
+			// Campo de nome do jogador, abaixo da carta (default = personagem).
+			nomes[i] = new JTextField(Recursos.SUSPEITOS[i]);
+			nomes[i].setHorizontalAlignment(JTextField.CENTER);
+
+			JLabel lbl = new JLabel("Nome:");
+			lbl.setForeground(new Color(210, 200, 180));
+			JPanel sul = new JPanel(new BorderLayout(4, 0));
+			sul.setBackground(new Color(40, 30, 20));
+			sul.add(lbl, BorderLayout.WEST);
+			sul.add(nomes[i], BorderLayout.CENTER);
+
+			JPanel wrapper = new JPanel(new BorderLayout(0, 4));
+			wrapper.setBackground(new Color(40, 30, 20));
+			wrapper.add(cartas[i], BorderLayout.CENTER);
+			wrapper.add(sul, BorderLayout.SOUTH);
+			grade.add(wrapper);
 		}
 		return grade;
 	}
@@ -104,23 +125,33 @@ public class JanelaPersonagens extends JFrame {
 
 	private void atualizarEstado() {
 		int marcados = 0;
-		for (PainelCarta c : cartas) {
-			if (c.estaSelecionada()) marcados++;
+		for (int i = 0; i < cartas.length; i++) {
+			boolean sel = cartas[i].estaSelecionada();
+			if (sel) marcados++;
+			// O campo de nome só é editável quando o personagem está em jogo.
+			nomes[i].setEnabled(sel);
 		}
 		contador.setText("Selecionados: " + marcados + "/6 (mínimo 3)");
 		botaoJogar.setEnabled(marcados >= 3);
 	}
 
 	private void iniciarPartida() {
-		List<String> nomes = new ArrayList<>();
-		for (PainelCarta c : cartas) {
-			if (c.estaSelecionada()) {
-				nomes.add(c.getSuspeito());
+		// Coleta, em listas paralelas, o NOME digitado e o SUSPEITO de cada
+		// personagem selecionado. Campo vazio cai no nome do próprio personagem.
+		List<String> nomesJogadores = new ArrayList<>();
+		List<String> suspeitos = new ArrayList<>();
+		for (int i = 0; i < cartas.length; i++) {
+			if (cartas[i].estaSelecionada()) {
+				String suspeito = cartas[i].getSuspeito();
+				String nome = nomes[i].getText().trim();
+				if (nome.isEmpty()) nome = suspeito;
+				nomesJogadores.add(nome);
+				suspeitos.add(suspeito);
 			}
 		}
 		// O Controller (Singleton) inicia a partida na Fachada; a janela do
 		// tabuleiro apenas observa o estado resultante.
-		Controller.getInstance().iniciarPartida(nomes);
+		Controller.getInstance().iniciarPartida(nomesJogadores, suspeitos);
 		JanelaTabuleiro proxima = new JanelaTabuleiro();
 		proxima.setVisible(true);
 		dispose();

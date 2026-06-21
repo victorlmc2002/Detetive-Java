@@ -81,7 +81,7 @@ public class JanelaCartas extends JFrame implements IObservador {
 		labelTitulo.setText("Cartas de " + jogador + " (" + suspeito + ")");
 		if (cor != null) labelTitulo.setForeground(cor);
 
-		List<String> cartas = fachada.cartasDoJogador(jogador);
+		List<String> cartas = fachada.cartasDoJogadorDaVez();
 
 		painelCartas.removeAll();
 		int n = cartas.size();
@@ -114,9 +114,8 @@ public class JanelaCartas extends JFrame implements IObservador {
 
 		PainelCarta(String nome) {
 			this.nome = nome;
-			// Tenta obter imagem do suspeito; para armas e cômodos retornará null
-			// por enquanto — o nome é escrito textualmente.
-			this.img = Recursos.cartaSuspeito(nome);
+			// Imagem da carta (suspeito, arma ou cômodo) pelo nome.
+			this.img = Recursos.cartaImagem(nome);
 			setPreferredSize(new Dimension(110, 150));
 			setBackground(new Color(50, 40, 40));
 			setBorder(BorderFactory.createLineBorder(new Color(120, 100, 80), 1));

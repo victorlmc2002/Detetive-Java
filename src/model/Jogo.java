@@ -61,24 +61,54 @@ class Jogo {
 		this.random = new Random(semente);
 	}
 
-	// Item 4-7 da Preparação:
-	// - cria o baralho com 21 cartas;
-	// - sorteia 1 carta de cada tipo para o envelope confidencial;
-	// - distribui as 18 restantes entre os jogadores;
-	// - posiciona cada peão em sua casa inicial;
-	// - define Srta. Scarlet como primeira a jogar.
+	// Versão de compatibilidade: recebe apenas os nomes e atribui os peões na
+	// ordem canônica de jogada (Scarlet, Mustard, White, ...). Mantida para a
+	// API antiga e para os testes.
 	public void iniciarPartida(List<String> nomesJogadores) {
 		if (nomesJogadores == null || nomesJogadores.size() < 3 || nomesJogadores.size() > 6) {
 			throw new IllegalArgumentException("Clue requer de 3 a 6 jogadores");
 		}
-
-		// Cria os jogadores, cada um com seu peão posicionado na casa inicial.
-		jogadores = new ArrayList<>();
+		List<String> suspeitos = new ArrayList<>();
 		for (int i = 0; i < nomesJogadores.size(); i++) {
-			String suspeito = SUSPEITOS_NA_ORDEM[i];
-			Casa casaInicial = tabuleiro.getCasaInicial(suspeito);
-			Peao peao = new Peao(suspeito, casaInicial);
-			jogadores.add(new Jogador(nomesJogadores.get(i), peao));
+			suspeitos.add(SUSPEITOS_NA_ORDEM[i]);
+		}
+		iniciarPartida(nomesJogadores, suspeitos);
+	}
+
+	// Item 4-7 da Preparação. Recebe os nomes dos jogadores e os SUSPEITOS que
+	// cada um escolheu (listas paralelas). Os jogadores são ordenados pela ordem
+	// canônica de jogada (Scarlet começa), independentemente da ordem de entrada.
+	// - cada peão é posicionado na casa inicial do SEU suspeito escolhido;
+	// - cria o baralho com 21 cartas e sorteia o envelope confidencial;
+	// - distribui as 18 restantes entre os jogadores.
+	public void iniciarPartida(List<String> nomesJogadores, List<String> suspeitos) {
+		if (nomesJogadores == null || suspeitos == null
+				|| nomesJogadores.size() != suspeitos.size()) {
+			throw new IllegalArgumentException("Listas de nomes e suspeitos incompatíveis");
+		}
+		int n = suspeitos.size();
+		if (n < 3 || n > 6) {
+			throw new IllegalArgumentException("Clue requer de 3 a 6 jogadores");
+		}
+
+		// Cria os jogadores percorrendo a ordem canônica de jogada: para cada
+		// suspeito da ordem oficial, se ele foi escolhido, vira um jogador. Assim
+		// Scarlet (se presente) sempre começa e a ordem fica correta.
+		jogadores = new ArrayList<>();
+		for (String canon : SUSPEITOS_NA_ORDEM) {
+			for (int i = 0; i < n; i++) {
+				if (canon.equals(suspeitos.get(i))) {
+					Casa casaInicial = tabuleiro.getCasaInicial(canon);
+					if (casaInicial == null) {
+						throw new IllegalArgumentException("Suspeito inválido: " + canon);
+					}
+					jogadores.add(new Jogador(nomesJogadores.get(i), new Peao(canon, casaInicial)));
+					break;
+				}
+			}
+		}
+		if (jogadores.size() != n) {
+			throw new IllegalArgumentException("Suspeitos repetidos ou inválidos");
 		}
 
 		// Item 4: monta baralho, sorteia envelope (3 cartas saem).
@@ -88,8 +118,9 @@ class Jogo {
 		// Item 5: distribui as 18 cartas restantes entre os jogadores.
 		Jogador.distribuirCartas(jogadores, baralho, random);
 
-		// Item 7: Scarlet começa.
+		// Item 7: o primeiro da ordem canônica começa; zera eliminados.
 		indiceVez = 0;
+		eliminados.clear();
 		partidaIniciada = true;
 	}
 
@@ -239,7 +270,16 @@ class Jogo {
 
 	public List<String> cartasDoJogador(String nomeJogador) {
 		verificarPartidaIniciada();
-		Jogador j = encontrarJogador(nomeJogador);
+		return nomesDasCartas(encontrarJogador(nomeJogador));
+	}
+
+	// Cartas do jogador da vez — lookup por índice (robusto a nomes repetidos).
+	public List<String> cartasDoJogadorDaVez() {
+		verificarPartidaIniciada();
+		return nomesDasCartas(jogadores.get(indiceVez));
+	}
+
+	private List<String> nomesDasCartas(Jogador j) {
 		List<String> nomes = new ArrayList<>();
 		for (Carta c : j.getMao()) {
 			nomes.add(c.getNome());
@@ -286,6 +326,30 @@ class Jogo {
 		return lista;
 	}
 
+	// Regra do Clue: ao ser citado em um palpite, o peão do suspeito é "convocado"
+	// para o cômodo de onde partiu o palpite (o cômodo atual do jogador da vez).
+	// Não faz nada se o suspeito não estiver em jogo (não há peão dele no tabuleiro)
+	// ou se o jogador da vez não estiver dentro de um cômodo.
+	void moverSuspeitoParaComodoAtual(String nomeSuspeito) {
+		verificarPartidaIniciada();
+		Casa casaDaVez = jogadores.get(indiceVez).getPeao().getCasa();
+		if (!casaDaVez.ehInterior()) return;
+		for (Jogador j : jogadores) {
+			Peao p = j.getPeao();
+			if (p.getSuspeito().equals(nomeSuspeito)) {
+				// Evita sobrepor exatamente o peão do jogador da vez, se houver
+				// outra casa interior livre no mesmo cômodo.
+				List<Casa> interior = casaDaVez.getComodo().getInterior();
+				Casa alvo = interior.get(0);
+				for (Casa c : interior) {
+					if (!c.equals(casaDaVez)) { alvo = c; break; }
+				}
+				p.mover(alvo);
+				return;
+			}
+		}
+	}
+
 	// Tenta refutar o palpite percorrendo os outros jogadores em ordem de turno.
 	// Retorna "NomeJogador|NomeCarta" do primeiro que pode refutar, ou null.
 	String tentarRefutar(String nomeSuspeito, String nomeArma, String nomeComodo) {
@@ -329,6 +393,53 @@ class Jogo {
 
 	Envelope getEnvelope() {
 		return envelope;
+	}
+
+	// Gabarito (modo teste): revela as 3 cartas do envelope confidencial na ordem
+	// suspeito, arma, cômodo. Útil para o testador conferir palpites e acusações.
+	public List<String> getGabarito() {
+		verificarPartidaIniciada();
+		List<String> gabarito = new ArrayList<>();
+		gabarito.add(envelope.getSuspeito().getNome());
+		gabarito.add(envelope.getArma().getNome());
+		gabarito.add(envelope.getComodo().getNome());
+		return gabarito;
+	}
+
+	// ---- Suporte à persistência (salvamento/recuperação, 4ª iteração) ----
+
+	int getIndiceVez() {
+		return indiceVez;
+	}
+
+	List<Jogador> getJogadores() {
+		return jogadores;
+	}
+
+	Set<Integer> getEliminados() {
+		return eliminados;
+	}
+
+	// Converte um par (linha, coluna) na Casa correspondente do tabuleiro.
+	// Usado na reconstrução dos peões ao recuperar uma partida.
+	Casa casaEm(int linha, int coluna) {
+		return tabuleiro.getCasa(linha, coluna);
+	}
+
+	// Repõe o estado completo de uma partida lida de um arquivo.
+	// A recuperação só ocorre no início do turno de um jogador (antes de lançar
+	// os dados), de modo que o Controller volta sempre a AGUARDANDO_DADO.
+	void carregarEstado(List<Jogador> novosJogadores, Envelope novoEnvelope,
+			int novoIndiceVez, int d1, int d2, Set<Integer> novosEliminados) {
+		this.jogadores = novosJogadores;
+		this.envelope = novoEnvelope;
+		this.indiceVez = novoIndiceVez;
+		this.valorDado1 = d1;
+		this.valorDado2 = d2;
+		this.ultimoLancamento = d1 + d2;
+		this.eliminados.clear();
+		this.eliminados.addAll(novosEliminados);
+		this.partidaIniciada = true;
 	}
 
 	// ---- Auxiliares privados ----

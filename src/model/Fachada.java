@@ -1,5 +1,7 @@
 package model;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -61,6 +63,13 @@ public class Fachada implements IObservado {
 		notificarObservadores(EventoJogo.PARTIDA_INICIADA);
 	}
 
+	// Cria uma nova partida com nomes E suspeitos escolhidos (listas paralelas).
+	public void iniciarPartida(List<String> nomesJogadores, List<String> suspeitos) {
+		jogo = new Jogo();
+		jogo.iniciarPartida(nomesJogadores, suspeitos);
+		notificarObservadores(EventoJogo.PARTIDA_INICIADA);
+	}
+
 	// Lança os dois dados aleatoriamente.
 	public int lancarDados() {
 		int total = jogo.lancarDados();
@@ -88,10 +97,15 @@ public class Fachada implements IObservado {
 	}
 
 	// Faz um palpite (suspeito + arma no cômodo atual).
-	// Retorna "NomeJogador|NomeCarta" se alguém refutou, ou null.
+	// Convoca o peão do suspeito citado para o cômodo (regra do Clue) e tenta
+	// obter uma refutação. Retorna "NomeJogador|NomeCarta" se alguém refutou,
+	// ou null se ninguém pôde refutar.
 	public String fazerPalpite(String suspeito, String arma) {
 		String comodo = jogo.comodoAtual();
+		jogo.moverSuspeitoParaComodoAtual(suspeito);
 		String resultado = jogo.tentarRefutar(suspeito, arma, comodo);
+		// O peão pode ter mudado de lugar: avisa para o tabuleiro se redesenhar.
+		notificarObservadores(EventoJogo.PIAO_MOVIDO);
 		notificarObservadores(EventoJogo.PALPITE_FEITO);
 		return resultado;
 	}
@@ -129,6 +143,20 @@ public class Fachada implements IObservado {
 
 	public boolean jogadorDaVezEliminado() {
 		return jogo.jogadorDaVezEliminado();
+	}
+
+	// ===================== Salvamento e Recuperação (Cap. 16) =============
+
+	// Grava o estado atual da partida em um arquivo texto escolhido pelo usuário.
+	public void salvarPartida(File arquivo) throws IOException {
+		Persistencia.salvar(arquivo, jogo);
+	}
+
+	// Recupera uma partida de um arquivo texto e a torna a partida corrente.
+	// Notifica os observadores para que a interface reflita o estado recuperado.
+	public void carregarPartida(File arquivo) throws IOException {
+		jogo = Persistencia.carregar(arquivo);
+		notificarObservadores(EventoJogo.PARTIDA_INICIADA);
 	}
 
 	// ===================== Consultas (somente leitura) ====================
@@ -179,5 +207,14 @@ public class Fachada implements IObservado {
 
 	public List<String> cartasDoJogador(String nomeJogador) {
 		return jogo.cartasDoJogador(nomeJogador);
+	}
+
+	public List<String> cartasDoJogadorDaVez() {
+		return jogo.cartasDoJogadorDaVez();
+	}
+
+	// Gabarito (modo teste): suspeito, arma e cômodo do envelope confidencial.
+	public List<String> getGabarito() {
+		return jogo.getGabarito();
 	}
 }

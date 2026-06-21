@@ -66,6 +66,15 @@ class Carta {
 		return baralho;
 	}
 
+	// Reconstrói uma carta a partir do seu nome, inferindo o tipo pelo baralho
+	// completo. Usado na recuperação de uma partida salva em arquivo texto.
+	static Carta porNome(String nome) {
+		for (Carta c : criarBaralhoCompleto()) {
+			if (c.getNome().equals(nome)) return c;
+		}
+		throw new IllegalArgumentException("Carta desconhecida: " + nome);
+	}
+
 	@Override
 	public boolean equals(Object o) {
 		if (this == o) return true;

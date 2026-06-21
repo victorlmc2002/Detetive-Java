@@ -46,7 +46,7 @@ public class Recursos {
 	public static void carregar() {
 		if (carregado) return;
 		try {
-			imagens.put("tabuleiro", lerImagem(BASE + "Tabuleiros/Tabuleiro-Clue-a.jpg"));
+			imagens.put("tabuleiro", lerImagem(BASE + "Tabuleiros/Tabuleiro-Clue-C.jpg"));
 			for (int i = 1; i <= 6; i++) {
 				imagens.put("dado" + i, lerImagem(BASE + "Tabuleiros/dado" + i + ".jpg"));
 			}
@@ -56,6 +56,26 @@ public class Recursos {
 			imagens.put(GREEN,   lerImagem(BASE + "Suspeitos/Green.jpg"));
 			imagens.put(PEACOCK, lerImagem(BASE + "Suspeitos/Peacock.jpg"));
 			imagens.put(PLUM,    lerImagem(BASE + "Suspeitos/Plum.jpg"));
+
+			// Cartas de armas — indexadas pelo nome EXATO usado no model (Carta).
+			imagens.put("Corda",          lerImagem(BASE + "Armas/Corda.jpg"));
+			imagens.put("Cano de Chumbo", lerImagem(BASE + "Armas/Cano.jpg"));
+			imagens.put("Faca",           lerImagem(BASE + "Armas/Faca.jpg"));
+			imagens.put("Chave Inglesa",  lerImagem(BASE + "Armas/ChaveInglesa.jpg"));
+			imagens.put("Castiçal",       lerImagem(BASE + "Armas/Castical.jpg"));
+			imagens.put("Revólver",       lerImagem(BASE + "Armas/Revolver.jpg"));
+
+			// Cartas de cômodos — indexadas pelo nome EXATO usado no model (Carta).
+			imagens.put("Cozinha",           lerImagem(BASE + "Comodos/Cozinha.jpg"));
+			imagens.put("Sala de Música",    lerImagem(BASE + "Comodos/SalaDeMusica.jpg"));
+			imagens.put("Jardim de Inverno", lerImagem(BASE + "Comodos/JardimInverno.jpg"));
+			imagens.put("Sala de Jantar",    lerImagem(BASE + "Comodos/SalaDeJantar.jpg"));
+			imagens.put("Salão de Jogos",    lerImagem(BASE + "Comodos/SalaoDeJogos.jpg"));
+			imagens.put("Biblioteca",        lerImagem(BASE + "Comodos/Biblioteca.jpg"));
+			imagens.put("Sala de Estar",     lerImagem(BASE + "Comodos/SalaDeEstar.jpg"));
+			imagens.put("Entrada",           lerImagem(BASE + "Comodos/Entrada.jpg"));
+			imagens.put("Escritório",        lerImagem(BASE + "Comodos/Escritorio.jpg"));
+
 			carregado = true;
 		} catch (IOException e) {
 			throw new RuntimeException("Falha ao carregar imagens: " + e.getMessage(), e);
@@ -84,6 +104,12 @@ public class Recursos {
 
 	public static BufferedImage cartaSuspeito(String suspeito) {
 		return imagens.get(suspeito);
+	}
+
+	// Imagem de qualquer carta (suspeito, arma ou cômodo) pelo nome usado no model.
+	// Retorna null se não houver imagem cadastrada para o nome informado.
+	public static BufferedImage cartaImagem(String nomeCarta) {
+		return imagens.get(nomeCarta);
 	}
 
 	public static Color cor(String suspeito) {

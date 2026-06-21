@@ -1,5 +1,7 @@
 package controller;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.List;
 
 import model.EventoJogo;
@@ -48,7 +50,15 @@ public class Controller {
 	// Inicia uma nova partida e reinicia o ciclo do turno.
 	public void iniciarPartida(List<String> nomes) {
 		estado = EstadoTurno.AGUARDANDO_DADO;
+		palpiteFeito = false;
 		fachada.iniciarPartida(nomes);
+	}
+
+	// Inicia uma nova partida com nomes E suspeitos escolhidos (listas paralelas).
+	public void iniciarPartida(List<String> nomes, List<String> suspeitos) {
+		estado = EstadoTurno.AGUARDANDO_DADO;
+		palpiteFeito = false;
+		fachada.iniciarPartida(nomes, suspeitos);
 	}
 
 	// Lança os dois dados de forma aleatória.
@@ -122,15 +132,37 @@ public class Controller {
 		return venceu;
 	}
 
+	// ===================== Salvamento e Recuperação =======================
+
+	// O salvamento só é permitido imediatamente antes do lançamento dos dados,
+	// isto é, no início do turno de um jogador (estado AGUARDANDO_DADO). Após o
+	// lançamento o botão é desabilitado, reabilitando apenas no próximo turno.
+	public boolean podeSalvar() {
+		return fachada.partidaIniciada() && estado == EstadoTurno.AGUARDANDO_DADO;
+	}
+
+	// Grava o estado da partida no arquivo escolhido pelo usuário.
+	public void salvarPartida(File arquivo) throws IOException {
+		if (!podeSalvar()) return;
+		fachada.salvarPartida(arquivo);
+	}
+
+	// Recupera uma partida do arquivo escolhido e reinicia o ciclo do turno.
+	public void carregarPartida(File arquivo) throws IOException {
+		fachada.carregarPartida(arquivo);
+		palpiteFeito = false;
+		estado = EstadoTurno.AGUARDANDO_DADO;
+	}
+
 	// Dispara o evento de exibição das cartas do jogador da vez.
 	public void exibirCartas() {
 		if (!fachada.partidaIniciada()) return;
 		fachada.notificarObservadores(EventoJogo.EXIBIR_CARTAS);
 	}
 
-	// Dispara o evento de exibição das anotações de palpites.
-	public void exibirAnotacoes() {
+	// Dispara o evento de exibição do bloco de notas do jogador da vez.
+	public void exibirBlocoNotas() {
 		if (!fachada.partidaIniciada()) return;
-		fachada.notificarObservadores(EventoJogo.EXIBIR_ANOTACOES);
+		fachada.notificarObservadores(EventoJogo.EXIBIR_BLOCO_NOTAS);
 	}
 }

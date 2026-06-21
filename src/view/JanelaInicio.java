@@ -10,14 +10,20 @@ import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.filechooser.FileNameExtensionFilter;
+
+import controller.Controller;
 
 // Primeira janela do jogo: oferece "Novo Jogo" e "Continuar".
-// O botão Continuar fica desabilitado até ser implementado salvamento.
+// "Continuar" recupera uma partida previamente salva em arquivo texto.
 public class JanelaInicio extends JFrame {
 
 	private static final long serialVersionUID = 1L;
@@ -40,7 +46,6 @@ public class JanelaInicio extends JFrame {
 		painelBotoes.setOpaque(false);
 		botaoNovo.setPreferredSize(new Dimension(140, 36));
 		botaoContinuar.setPreferredSize(new Dimension(140, 36));
-		botaoContinuar.setEnabled(false);
 		painelBotoes.add(botaoNovo);
 		painelBotoes.add(botaoContinuar);
 		fundo.add(painelBotoes, BorderLayout.SOUTH);
@@ -56,8 +61,41 @@ public class JanelaInicio extends JFrame {
 			}
 		});
 
+		botaoContinuar.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				carregarPartida();
+			}
+		});
+
 		setSize(640, 480);
 		setLocationRelativeTo(null);
+	}
+
+	/**
+	 * Recupera uma partida salva: abre um JFileChooser para o usuário escolher o
+	 * arquivo texto (.txt), pede ao Controller que reconstrua o estado e abre a
+	 * janela do tabuleiro já refletindo a partida recuperada.
+	 */
+	private void carregarPartida() {
+		JFileChooser chooser = new JFileChooser();
+		chooser.setDialogTitle("Carregar Partida");
+		chooser.setAcceptAllFileFilterUsed(false);
+		chooser.setFileFilter(new FileNameExtensionFilter("Arquivo de texto (*.txt)", "txt"));
+
+		if (chooser.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) return;
+
+		File arquivo = chooser.getSelectedFile();
+		try {
+			Controller.getInstance().carregarPartida(arquivo);
+			JanelaTabuleiro tabuleiro = new JanelaTabuleiro();
+			tabuleiro.setVisible(true);
+			dispose();
+		} catch (Exception ex) {
+			JOptionPane.showMessageDialog(this,
+				"Erro ao carregar a partida:\n" + ex.getMessage(),
+				"Erro", JOptionPane.ERROR_MESSAGE);
+		}
 	}
 
 	// Painel desenhado via Java2D. Por enquanto exibe título "Clue"; pode receber
