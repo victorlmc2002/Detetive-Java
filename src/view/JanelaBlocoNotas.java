@@ -2,7 +2,6 @@ package view;
 
 import java.awt.Color;
 import java.awt.Component;
-import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
@@ -27,8 +26,8 @@ import model.IObservador;
 /**
  * Bloco de notas de um jogador (Figura 6 do enunciado da 2ª iteração).
  *
- * Apresenta TODAS as cartas do jogo agrupadas em três quadros — Suspeitos,
- * Cômodos e Armas — cada carta com um JCheckBox. A janela:
+ * Apresenta TODAS as cartas do jogo agrupadas em três quadros - Suspeitos,
+ * Cômodos e Armas - cada carta com um JCheckBox. A janela:
  *
  *   - é aberta/fechada por meio de componentes Java Swing (botão "Bloco de
  *     Notas" no tabuleiro + botão de fechar da própria janela);
@@ -40,10 +39,6 @@ import model.IObservador;
  * As marcações manuais são guardadas POR JOGADOR (chaveadas pelo suspeito da
  * vez, que é único na partida), de modo que cada jogador tenha o seu próprio
  * bloco de notas, exatamente como na Figura 6 ("SCARLETT's Notes").
- *
- * OBSERVER (Cap. 17): implementa IObservador e se registra na Fachada. Abre e
- * se atualiza ao receber o evento EXIBIR_BLOCO_NOTAS; limpa-se ao iniciar uma
- * nova partida (PARTIDA_INICIADA).
  *
  * Tratamento de eventos feito com classes anônimas (sem expressões lambda,
  * conforme exigência do enunciado).
@@ -178,7 +173,7 @@ public class JanelaBlocoNotas extends JFrame implements IObservador {
 
 		suspeitoExibido = fachada.suspeitoDaVez();
 		String jogador  = fachada.jogadorDaVez();
-		setTitle("Bloco de Notas — " + jogador + " (" + suspeitoExibido + ")");
+		setTitle("Bloco de Notas - " + jogador + " (" + suspeitoExibido + ")");
 
 		Set<String> proprias = new HashSet<>(fachada.cartasDoJogadorDaVez());
 		Set<String> manuais  = marcacoesManuais.get(suspeitoExibido);
@@ -188,7 +183,7 @@ public class JanelaBlocoNotas extends JFrame implements IObservador {
 			String nome  = entrada.getKey();
 			JCheckBox cb = entrada.getValue();
 			boolean propria = proprias.contains(nome);
-			// setSelected não dispara o ActionListener — não há risco de poluir
+			// setSelected não dispara o ActionListener - não há risco de poluir
 			// as marcações manuais durante a reconstrução.
 			cb.setSelected(propria || manuais.contains(nome));
 			cb.setEnabled(!propria); // cartas próprias ficam travadas

@@ -70,7 +70,7 @@ class Tabuleiro {
 		registrarCasasIniciais();
 	}
 
-	// Regras do Clue: Cozinha <-> Escritório, Sala de Estar <-> Jardim de Inverno.
+	// Passagens Secretas: Cozinha <-> Escritório, Sala de Estar <-> Jardim de Inverno.
 	private void registrarPassagensSecretas() {
 		ligarPassagem("Cozinha", "Escritório");
 		ligarPassagem("Sala de Estar", "Jardim de Inverno");
@@ -234,7 +234,7 @@ class Tabuleiro {
 				for (Casa interior : c.getInterior()) {
 					alcancaveis.add(interior);
 				}
-				// Não continuamos a BFS a partir do interior — regra: parou ao entrar.
+				// Não continuamos a BFS a partir do interior - regra: parou ao entrar.
 			}
 		}
 

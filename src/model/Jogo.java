@@ -10,7 +10,7 @@ import java.util.Set;
 // Model a partir da View/Controller é a Fachada (padrão Façade).
 class Jogo {
 
-	// Suspeitos na ordem oficial de jogada (Scarlet começa, item 7 da Preparação).
+	// Suspeitos na ordem oficial de jogada
 	private static final String[] SUSPEITOS_NA_ORDEM = {
 		"Srta. Scarlet",
 		"Coronel Mustard",
@@ -33,7 +33,7 @@ class Jogo {
 	private int valorDado2 = 0;
 	private final Set<Integer> eliminados = new HashSet<>();
 
-	// Listas estáticas — espelham Carta.criarBaralhoCompleto().
+	// Listas estáticas - espelham Carta.criarBaralhoCompleto().
 	private static final String[] LISTA_SUSPEITOS = {
 		"Srta. Scarlet", "Coronel Mustard", "Sra. White",
 		"Reverendo Green", "Sra. Peacock", "Professor Plum"
@@ -54,7 +54,7 @@ class Jogo {
 		this.random = new Random();
 	}
 
-	// Construtor com semente — uso interno e em testes, para resultados previsíveis.
+	// Construtor com semente - uso interno e em testes, para resultados previsíveis.
 	Jogo(long semente) {
 		this.tabuleiro = new Tabuleiro();
 		this.dado = new Dado(semente);
@@ -75,9 +75,7 @@ class Jogo {
 		iniciarPartida(nomesJogadores, suspeitos);
 	}
 
-	// Item 4-7 da Preparação. Recebe os nomes dos jogadores e os SUSPEITOS que
-	// cada um escolheu (listas paralelas). Os jogadores são ordenados pela ordem
-	// canônica de jogada (Scarlet começa), independentemente da ordem de entrada.
+	// Os jogadores são ordenados pela ordem de jogada (Scarlet começa), independentemente da ordem de entrada.
 	// - cada peão é posicionado na casa inicial do SEU suspeito escolhido;
 	// - cria o baralho com 21 cartas e sorteia o envelope confidencial;
 	// - distribui as 18 restantes entre os jogadores.
@@ -146,7 +144,7 @@ class Jogo {
 	}
 
 	// Lança os DOIS dados aleatoriamente (Clue usa 2 dados). Guarda os valores
-	// individuais — para a View exibir as duas imagens — e o total, usado pela
+	// individuais - para a View exibir as duas imagens - e o total, usado pela
 	// movimentação. Retorna o total.
 	public int lancarDados() {
 		valorDado1 = dado.lancar();
@@ -273,7 +271,7 @@ class Jogo {
 		return nomesDasCartas(encontrarJogador(nomeJogador));
 	}
 
-	// Cartas do jogador da vez — lookup por índice (robusto a nomes repetidos).
+	// Cartas do jogador da vez - lookup por índice (robusto a nomes repetidos).
 	public List<String> cartasDoJogadorDaVez() {
 		verificarPartidaIniciada();
 		return nomesDasCartas(jogadores.get(indiceVez));

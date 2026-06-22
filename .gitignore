@@ -3,4 +3,16 @@ bin/
 
 # Configurações locais do Eclipse
 .settings/
+.contexto/
 
+# Arquivos de sistema
+.DS_Store
+Thumbs.db
+
+# IDEs
+*.swp
+*.swo
+*~
+.vscode/
+
+.metadata/

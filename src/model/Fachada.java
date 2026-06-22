@@ -13,7 +13,7 @@ import java.util.Set;
 // Model ficam escondidos (Façade) e há uma única instância global (Singleton).
 //
 // Toda mutação do estado da partida (lançar dados, mover peão, trocar a vez)
-// dispara a notificação dos observadores (Observer, Cap. 17) — é por meio dela
+// dispara a notificação dos observadores - é por meio dela
 // que a interface gráfica é atualizada para refletir a mudança de estado.
 public class Fachada implements IObservado {
 
@@ -145,7 +145,7 @@ public class Fachada implements IObservado {
 		return jogo.jogadorDaVezEliminado();
 	}
 
-	// ===================== Salvamento e Recuperação (Cap. 16) =============
+	// ===================== Salvamento e Recuperação  =============
 
 	// Grava o estado atual da partida em um arquivo texto escolhido pelo usuário.
 	public void salvarPartida(File arquivo) throws IOException {

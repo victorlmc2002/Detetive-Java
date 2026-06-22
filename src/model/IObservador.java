@@ -4,7 +4,7 @@ package model;
 // implementa esta interface e se registra em um IObservado (a Fachada).
 //
 // A notificação recebe:
-//   - origem: a referência do observado, para callback no estilo do Cap. 17
+//   - origem: a referência do observado.
 //     (o observador pode consultar dados via origem.algumGetter()).
 //   - evento: identificador do que mudou (ver EventoJogo), permitindo
 //     reação seletiva no observador.

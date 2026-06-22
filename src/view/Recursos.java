@@ -57,7 +57,7 @@ public class Recursos {
 			imagens.put(PEACOCK, lerImagem(BASE + "Suspeitos/Peacock.jpg"));
 			imagens.put(PLUM,    lerImagem(BASE + "Suspeitos/Plum.jpg"));
 
-			// Cartas de armas — indexadas pelo nome EXATO usado no model (Carta).
+			// Cartas de armas - indexadas pelo nome EXATO usado no model (Carta).
 			imagens.put("Corda",          lerImagem(BASE + "Armas/Corda.jpg"));
 			imagens.put("Cano de Chumbo", lerImagem(BASE + "Armas/Cano.jpg"));
 			imagens.put("Faca",           lerImagem(BASE + "Armas/Faca.jpg"));
@@ -65,7 +65,7 @@ public class Recursos {
 			imagens.put("Castiçal",       lerImagem(BASE + "Armas/Castical.jpg"));
 			imagens.put("Revólver",       lerImagem(BASE + "Armas/Revolver.jpg"));
 
-			// Cartas de cômodos — indexadas pelo nome EXATO usado no model (Carta).
+			// Cartas de cômodos - indexadas pelo nome EXATO usado no model (Carta).
 			imagens.put("Cozinha",           lerImagem(BASE + "Comodos/Cozinha.jpg"));
 			imagens.put("Sala de Música",    lerImagem(BASE + "Comodos/SalaDeMusica.jpg"));
 			imagens.put("Jardim de Inverno", lerImagem(BASE + "Comodos/JardimInverno.jpg"));

@@ -44,7 +44,7 @@ import model.Posicao;
  *
  * Esta classe é um OBSERVADOR (padrão Observer, Cap. 17): registra-se na
  * Fachada e, a cada notificação de mudança de estado da partida, relê o estado
- * e se redesenha. Ela NÃO contém mais lógica de turno — todos os comandos do
+ * e se redesenha. Ela NÃO contém mais lógica de turno - todos os comandos do
  * usuário são encaminhados ao Controller, que organiza a sequência de eventos.
  *
  * Layout BorderLayout:
@@ -223,7 +223,7 @@ public class JanelaTabuleiro extends JFrame implements IObservador {
 			}
 		});
 
-		// Botao que revela o gabarito (envelope confidencial) — apoio ao testador.
+		// Botao que revela o gabarito (envelope confidencial) - apoio ao testador.
 		botaoGabarito = new JButton("Ver Gabarito");
 		estilizarBotao(botaoGabarito);
 		botaoGabarito.addActionListener(new ActionListener() {
@@ -342,10 +342,11 @@ public class JanelaTabuleiro extends JFrame implements IObservador {
 		Controller.EstadoTurno estado = controller.getEstado();
 
 		String suspeito = fachada.suspeitoDaVez();
+		String jogador = fachada.jogadorDaVez();
 		Color cor = Recursos.cor(suspeito);
 
 		// Texto e cor do label do jogador da vez
-		labelJogador.setText("<html><center>Vez de:<br><b>" + suspeito + "</b></center></html>");
+		labelJogador.setText("<html><center>Vez de:<br><b>" + jogador + " (" + suspeito + ")</b></center></html>");
 		if (cor != null) labelJogador.setForeground(cor);
 
 		// Dados: aparecem apos o lancamento (qualquer estado != AGUARDANDO_DADO).

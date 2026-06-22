@@ -8,28 +8,28 @@ import model.EventoJogo;
 import model.Fachada;
 import model.Posicao;
 
-// Padrão SINGLETON. Consolida o papel do CONTROLLER (objetivo da 3ª iteração):
-// é o responsável por ORGANIZAR A SEQUÊNCIA DE EVENTOS de uma partida de Clue.
+// Singleton. É o Controller do jogo: é ele que cuida da ordem dos eventos
+// dentro de uma partida.
 //
-// A máquina de estados do turno mora aqui (antes estava dentro da View). A View
-// apenas envia comandos (cliques de botão e do tabuleiro) ao Controller; este
-// valida a transição de estado e aciona a Fachada. A Fachada, por sua vez,
-// notifica os observadores (Observer) — e é assim que a interface se atualiza.
+// A máquina de estados do turno fica aqui. A View só
+// repassa os comandos do usuário (cliques de botão e do tabuleiro) pra cá, o
+// Controller valida a transição e chama a Fachada. A Fachada avisa os
+// observadores, e é assim que a tela se atualiza.
 public class Controller {
 
-	// Estados pelos quais um turno passa.
+	// Os estados por que um turno passa.
 	public enum EstadoTurno {
 		AGUARDANDO_DADO,       // jogador ainda não lançou os dados
-		AGUARDANDO_MOVIMENTO,  // dados lançados; aguarda clique no destino
-		FIM_TURNO,             // peão movido; aguarda ação ou "Próximo Jogador"
-		FIM_DE_JOGO            // partida encerrada (vitória ou derrota definitiva)
+		AGUARDANDO_MOVIMENTO,  // dados lançados, espera o clique no destino
+		FIM_TURNO,             // peão movido, espera ação ou "Próximo Jogador"
+		FIM_DE_JOGO            // partida acabou (vitória ou derrota)
 	}
 
 	private static Controller instancia;
 
 	private final Fachada fachada = Fachada.getInstance();
 	private EstadoTurno estado = EstadoTurno.AGUARDANDO_DADO;
-	// Controla se o jogador da vez já fez palpite neste turno.
+	// Marca se o jogador da vez já palpitou neste turno.
 	private boolean palpiteFeito = false;
 
 	private Controller() {
@@ -42,41 +42,41 @@ public class Controller {
 		return instancia;
 	}
 
-	// A View lê o estado para habilitar/desabilitar botões e desenhar destaques.
+	// A View usa o estado pra habilitar/desabilitar botões e desenhar destaques.
 	public EstadoTurno getEstado() {
 		return estado;
 	}
 
-	// Inicia uma nova partida e reinicia o ciclo do turno.
+	// Começa uma partida nova e reinicia o ciclo do turno.
 	public void iniciarPartida(List<String> nomes) {
 		estado = EstadoTurno.AGUARDANDO_DADO;
 		palpiteFeito = false;
 		fachada.iniciarPartida(nomes);
 	}
 
-	// Inicia uma nova partida com nomes E suspeitos escolhidos (listas paralelas).
+	// Mesma coisa, mas recebendo também os suspeitos escolhidos (listas paralelas).
 	public void iniciarPartida(List<String> nomes, List<String> suspeitos) {
 		estado = EstadoTurno.AGUARDANDO_DADO;
 		palpiteFeito = false;
 		fachada.iniciarPartida(nomes, suspeitos);
 	}
 
-	// Lança os dois dados de forma aleatória.
+	// Joga os dois dados aleatoriamente.
 	public void lancarDados() {
 		if (estado != EstadoTurno.AGUARDANDO_DADO) return;
 		estado = EstadoTurno.AGUARDANDO_MOVIMENTO;
 		fachada.lancarDados();
 	}
 
-	// Define os valores dos dados (modo testador) em vez de randomizar.
+	// Fixa os valores dos dados na mão (modo de teste), sem sortear.
 	public void definirDados(int d1, int d2) {
 		if (estado != EstadoTurno.AGUARDANDO_DADO) return;
 		estado = EstadoTurno.AGUARDANDO_MOVIMENTO;
 		fachada.definirDados(d1, d2);
 	}
 
-	// Tenta mover o peão da vez para (linha, coluna). Só efetiva se o destino
-	// estiver entre as casas alcançáveis; caso contrário, ignora (regra do jogo).
+	// Tenta mover o peão da vez para (linha, coluna). Só anda se o destino estiver
+	// entre as casas alcançáveis, senão, ignora o clique.
 	public void tentarMover(int linha, int coluna) {
 		if (estado != EstadoTurno.AGUARDANDO_MOVIMENTO) return;
 		Posicao destino = new Posicao(linha, coluna);
@@ -84,10 +84,9 @@ public class Controller {
 			estado = EstadoTurno.FIM_TURNO;
 			fachada.deslocarPiao(destino);
 		}
-		// Destino inválido: silêncio total, o estado não muda (conforme regra).
 	}
 
-	// Passa a vez para o próximo jogador e reinicia o ciclo do turno.
+	// Passa a vez pro próximo jogador e reinicia o ciclo do turno.
 	public void avancarTurno() {
 		if (estado != EstadoTurno.FIM_TURNO) return;
 		palpiteFeito = false;
@@ -95,10 +94,9 @@ public class Controller {
 		fachada.proximoJogador();
 	}
 
-	// Faz um palpite: suspeito + arma no cômodo atual (inferido pela Fachada).
-	// Só permitido em FIM_TURNO, quando o jogador está em um cômodo,
-	// e apenas uma vez por turno.
-	// Retorna "NomeJogador|NomeCarta" se alguém refutou, ou null.
+	// Faz um palpite: suspeito + arma no cômodo atual (a Fachada descobre o cômodo).
+	// Só rola em FIM_TURNO, com o jogador dentro de um cômodo, e uma vez por turno.
+	// Volta "NomeJogador|NomeCarta" se alguém refutou, ou null.
 	public String fazerPalpite(String suspeito, String arma) {
 		if (estado != EstadoTurno.FIM_TURNO) return null;
 		if (palpiteFeito) return null;
@@ -107,7 +105,7 @@ public class Controller {
 		return fachada.fazerPalpite(suspeito, arma);
 	}
 
-	// Verifica se o palpite pode ser feito agora.
+	// Diz se dá pra palpitar agora.
 	public boolean podeFazerPalpite() {
 		return estado == EstadoTurno.FIM_TURNO
 			&& !palpiteFeito

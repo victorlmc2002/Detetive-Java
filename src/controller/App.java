@@ -6,9 +6,7 @@ import view.JanelaInicio;
 import view.Recursos;
 
 // Ponto de entrada da aplicação.
-// Carrega imagens uma única vez e abre a JanelaInicio na EDT.
-// Nenhuma lambda — a SwingUtilities.invokeLater recebe um Runnable anônimo,
-// conforme exigido pelo PDF (cap. 12).
+// Carrega imagens uma única vez e abre a JanelaInicio na EDT
 public class App {
 
 	public static void main(String[] args) {

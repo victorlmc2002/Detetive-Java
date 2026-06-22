@@ -44,7 +44,7 @@ class Envelope {
 	}
 
 	// Sorteia o envelope a partir de um baralho completo.
-	// IMPORTANTE: modifica a lista 'baralho' — remove as 3 cartas escolhidas,
+	// IMPORTANTE: modifica a lista 'baralho' - remove as 3 cartas escolhidas,
 	// deixando apenas as 18 que sobraram para serem distribuídas aos jogadores.
 	static Envelope sortear(List<Carta> baralho, Random random) {
 		Carta suspeito = sortearDoTipo(baralho, TipoCarta.SUSPEITO, random);

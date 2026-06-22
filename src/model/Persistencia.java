@@ -14,9 +14,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-// Salvamento e recuperação do estado de uma partida em arquivo texto ASCII puro
-// (4ª iteração — manipulação de streams de E/S, Cap. 16).
-//
 // É package-private: a View/Controller só acionam a persistência por meio da
 // Fachada (Façade), que delega a esta classe.
 //
